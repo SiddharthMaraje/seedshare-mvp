@@ -115,7 +115,7 @@ def get_sample_data():
 
 import google.generativeai as genai
 
-genai.configure(api_key=st.secrets["AIzaSyDp5K2IwfHvGH41764x803USQ_nYUku0CM"])
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 model = genai.GenerativeModel("gemini-1.5-flash")
 
