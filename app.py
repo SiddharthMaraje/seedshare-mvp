@@ -2,24 +2,33 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 
+from google import genai
+
 # ------------------------------------------------------------
 # SeedShare / Community Seed Sharing MVP
-# Streamlit + Ollama DeepSeek R1 7B
+# Streamlit + Gemini AI
 # ------------------------------------------------------------
 
 APP_TITLE = "SeedShare Berlin MVP"
 DATA_FILE = Path("seed_listings.json")
+
+# Optional old Ollama config kept for future fallback/local demo
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "deepseek-r1:7b"
+
+# Gemini model
+GEMINI_MODEL = "gemini-2.5-flash"
 
 st.set_page_config(
     page_title=APP_TITLE,
     page_icon="🌱",
     layout="wide"
 )
+
 
 # ------------------------------------------------------------
 # Data helpers
@@ -88,52 +97,96 @@ def get_sample_data():
 
 
 # ------------------------------------------------------------
-# AI helper
+# AI helpers
 # ------------------------------------------------------------
 
-# def ask_deepseek(prompt):
-#     payload = {
-#         "model": OLLAMA_MODEL,
-#         "prompt": prompt,
-#         "stream": False
-#     }
+def get_gemini_api_key():
+    """
+    Reads the Gemini API key from Streamlit secrets first,
+    then from the local environment variable.
 
-#     try:
-#         response = requests.post(OLLAMA_URL, json=payload, timeout=120)
-#         response.raise_for_status()
-#         result = response.json()
-#         return result.get("response", "No response generated.")
-#     except requests.exceptions.ConnectionError:
-#         return (
-#             "Could not connect to Ollama. Please make sure Ollama is running and the model "
-#             f"'{OLLAMA_MODEL}' is available."
-#         )
-#     except requests.exceptions.Timeout:
-#         return "The AI response took too long. Try a shorter request."
-#     except Exception as error:
-#         return f"AI error: {error}"
+    Recommended .streamlit/secrets.toml:
+    GEMINI_API_KEY = "your-api-key"
+    """
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        pass
 
-import google.generativeai as genai
+    return os.getenv("GEMINI_API_KEY")
 
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-
-model = genai.GenerativeModel("gemini-1.5-flash")
 
 def ask_gemini(prompt):
+    api_key = get_gemini_api_key()
+
+    if not api_key:
+        return (
+            "AI is not configured yet.\n\n"
+            "Please add your Gemini API key as GEMINI_API_KEY in "
+            ".streamlit/secrets.toml or as an environment variable."
+        )
+
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt
+        )
+
+        if hasattr(response, "text") and response.text:
+            return response.text
+
+        return "The AI service returned an empty response. Please try again."
+
+    except Exception as error:
+        return (
+            "AI recommendation could not be generated right now.\n\n"
+            f"Technical error: {error}\n\n"
+            "Fallback advice: Check the seed packet for sowing season, sunlight needs, "
+            "watering frequency, and expiry date. For Berlin balconies, herbs such as basil, "
+            "parsley, chives, and easy flowers such as marigold are often good beginner options "
+            "during the warmer growing season."
+        )
+
+
+def ask_deepseek(prompt):
+    """
+    Optional local Ollama fallback.
+    Not used by default, but kept for demo flexibility.
+    """
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False
+    }
+
+    try:
+        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
+        response.raise_for_status()
+        result = response.json()
+        return result.get("response", "No response generated.")
+    except requests.exceptions.ConnectionError:
+        return (
+            "Could not connect to Ollama. Please make sure Ollama is running and the model "
+            f"'{OLLAMA_MODEL}' is available."
+        )
+    except requests.exceptions.Timeout:
+        return "The AI response took too long. Try a shorter request."
     except Exception as error:
         return f"AI error: {error}"
 
+
 def build_gardening_prompt(location, month, sunlight, balcony_size, experience, interest):
     return f"""
-You are a friendly balcony gardening assistant for a community seed sharing app in Berlin.
+You are a friendly balcony gardening assistant for a community seed-sharing app in Berlin.
 
 Give practical, beginner-friendly advice.
 Keep the answer concise and structured.
-Avoid making medical, legal, or guaranteed claims.
+Avoid medical, legal, or guaranteed claims.
 Focus on seeds and seedlings suitable for balcony or container gardening.
+Mention that local conditions and seed packet instructions should be checked.
 
 User context:
 - City/location: {location}
@@ -211,11 +264,25 @@ elif page == "Browse Seeds":
 
     df = pd.DataFrame(data)
 
+    required_columns = ["district", "category", "seed_name"]
+    for column in required_columns:
+        if column not in df.columns:
+            df[column] = ""
+
     col1, col2, col3 = st.columns(3)
+
     with col1:
-        district_filter = st.selectbox("District", ["All"] + sorted(df["district"].dropna().unique().tolist()))
+        district_filter = st.selectbox(
+            "District",
+            ["All"] + sorted(df["district"].dropna().unique().tolist())
+        )
+
     with col2:
-        category_filter = st.selectbox("Category", ["All"] + sorted(df["category"].dropna().unique().tolist()))
+        category_filter = st.selectbox(
+            "Category",
+            ["All"] + sorted(df["category"].dropna().unique().tolist())
+        )
+
     with col3:
         search_term = st.text_input("Search by seed name")
 
@@ -235,12 +302,12 @@ elif page == "Browse Seeds":
     if filtered_df.empty:
         st.info("No listings match your filters.")
     else:
-        for _, row in filtered_df.iterrows():
+        for index, row in filtered_df.iterrows():
             with st.container(border=True):
                 col_a, col_b = st.columns([3, 1])
 
                 with col_a:
-                    st.markdown(f"### {row['seed_name']}")
+                    st.markdown(f"### {row.get('seed_name', 'Unnamed listing')}")
                     st.write(row.get("description", "No description provided."))
                     st.caption(
                         f"Category: {row.get('category', 'N/A')} | "
@@ -254,9 +321,11 @@ elif page == "Browse Seeds":
 
                 with col_b:
                     st.write(f"Shared by: **{row.get('owner_name', 'Neighbour')}**")
-                    if st.button(f"Request {row['seed_name']}", key=f"request_{row.name}"):
+                    button_key = f"request_{index}_{row.get('seed_name', 'seed')}"
+                    if st.button(f"Request {row.get('seed_name', 'seed')}", key=button_key):
                         st.success(
-                            f"Request simulated. In a real app, this would contact {row.get('owner_name', 'the owner')}."
+                            f"Request simulated. In a real app, this would contact "
+                            f"{row.get('owner_name', 'the owner')}."
                         )
                         st.write(f"Contact: {row.get('contact', 'Not provided')}")
 
@@ -315,6 +384,7 @@ elif page == "Add Listing":
                     "contact": contact,
                     "created_at": datetime.now().strftime("%Y-%m-%d %H:%M")
                 }
+
                 add_seed_listing(listing)
                 st.success("Listing added successfully. You can now see it under Browse Seeds.")
 
@@ -323,7 +393,7 @@ elif page == "AI Gardening Assistant":
     st.subheader("AI Balcony Gardening Assistant")
     st.write(
         "Ask for practical growing suggestions based on Berlin balcony conditions. "
-        "This uses your local Ollama DeepSeek model."
+        "This version uses Gemini via the current Google GenAI SDK."
     )
 
     col1, col2 = st.columns(2)
@@ -358,10 +428,16 @@ elif page == "AI Gardening Assistant":
         )
 
     if st.button("Get AI growing advice"):
-        prompt = build_gardening_prompt(location, month, sunlight, balcony_size, experience, interest)
+        prompt = build_gardening_prompt(
+            location,
+            month,
+            sunlight,
+            balcony_size,
+            experience,
+            interest
+        )
 
-        with st.spinner("Asking DeepSeek via Ollama..."):
-            # ai_response = ask_deepseek(prompt)
+        with st.spinner("Generating AI growing advice..."):
             ai_response = ask_gemini(prompt)
 
         st.markdown("### AI recommendation")
@@ -398,10 +474,13 @@ elif page == "Project Notes":
     - Reduces knowledge barrier for first-time balcony gardeners
     - Makes the project more innovative while keeping the technical scope feasible
 
+    ### Technical risk note
+    External AI APIs can change model names, SDKs, or supported endpoints.  
+    This MVP reduces risk by using a current model name, checking for missing API keys, and showing fallback guidance if AI generation fails.
+
     ### Suggested success criteria
     - A teammate can add a listing in under 2 minutes
     - A teammate can find a relevant seed listing using filters
     - A beginner receives understandable AI growing guidance
     - The demo clearly communicates sustainability and community value
     """)
-                
