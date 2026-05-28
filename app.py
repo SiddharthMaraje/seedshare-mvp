@@ -5,6 +5,13 @@ import streamlit as st
 from streamlit_folium import st_folium
 from map_utils import create_seed_map
 
+from rating_utils import (
+    get_all_profiles,
+    get_rating_summary,
+    get_my_rating_for_user,
+    upsert_profile_rating,
+)
+
 from auth_utils import (
     init_auth_state,
     sign_up,
@@ -103,13 +110,14 @@ else:
 # Page tabs
 # -----------------------------
 
-home_tab, browse_tab, map_tab, add_tab, ai_tab, profile_tab, my_listings_tab = st.tabs(
+home_tab, browse_tab, map_tab, add_tab, ai_tab, community_tab, profile_tab, my_listings_tab = st.tabs(
     [
         "SeedShare Home",
         "Browse Seeds",
         "Seed Map",
         "Add Listing",
         "AI Gardening Assistant",
+        "Community Profiles",
         "My Profile",
         "My Listings",
     ]
@@ -658,7 +666,122 @@ with ai_tab:
         with st.expander("View AI Prompt Used"):
             st.code(prompt, language="text")
 
+# -----------------------------
+# Community Profiles
+# -----------------------------
 
+with community_tab:
+    st.subheader("Community Profiles")
+    st.write("Browse SeedShare Berlin users and rate community interactions.")
+
+    profiles = get_all_profiles()
+
+    if not profiles:
+        st.info("No community profiles yet.")
+
+    else:
+        search_profile = st.text_input(
+            "Search profiles",
+            placeholder="Search by username, location, or gardening level",
+        )
+
+        filtered_profiles = profiles
+
+        if search_profile:
+            search_lower = search_profile.lower()
+
+            filtered_profiles = [
+                profile for profile in filtered_profiles
+                if search_lower in str(profile.get("username", "")).lower()
+                or search_lower in str(profile.get("location", "")).lower()
+                or search_lower in str(profile.get("gardening_level", "")).lower()
+            ]
+
+        st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
+
+        for profile in filtered_profiles:
+            profile_id = profile.get("id")
+            username = profile.get("username", "Unnamed user")
+            location = profile.get("location", "Not specified")
+            gardening_level = profile.get("gardening_level", "Not specified")
+
+            rating_summary = get_rating_summary(profile_id)
+            average_rating = rating_summary["average"]
+            rating_count = rating_summary["count"]
+
+            with st.container(border=True):
+                st.markdown(f"### {username}")
+                st.write(f"**Location:** {location}")
+                st.write(f"**Gardening level:** {gardening_level}")
+
+                if rating_count == 0:
+                    st.write("**Rating:** No ratings yet")
+                else:
+                    st.write(
+                        f"**Rating:** ⭐ {average_rating}/5 from {rating_count} rating(s)"
+                    )
+
+                if not is_logged_in():
+                    st.info("Log in to rate this user.")
+
+                else:
+                    current_user = get_current_user()
+
+                    if current_user.id == profile_id:
+                        st.caption("You cannot rate your own profile.")
+
+                    else:
+                        existing_rating = get_my_rating_for_user(
+                            rated_user_id=profile_id,
+                            rater_user_id=current_user.id,
+                        )
+
+                        default_rating = (
+                            existing_rating.get("rating", 5)
+                            if existing_rating
+                            else 5
+                        )
+
+                        default_comment = (
+                            existing_rating.get("comment", "")
+                            if existing_rating
+                            else ""
+                        )
+
+                        with st.form(f"rating_form_{profile_id}"):
+                            rating = st.slider(
+                                "Your rating",
+                                min_value=1,
+                                max_value=5,
+                                value=default_rating,
+                                key=f"rating_slider_{profile_id}",
+                            )
+
+                            comment = st.text_area(
+                                "Optional comment",
+                                value=default_comment,
+                                placeholder="e.g. Friendly exchange, healthy seedlings, good communication.",
+                                key=f"rating_comment_{profile_id}",
+                            )
+
+                            submitted_rating = st.form_submit_button("Save rating")
+
+                            if submitted_rating:
+                                try:
+                                    upsert_profile_rating(
+                                        rated_user_id=profile_id,
+                                        rater_user_id=current_user.id,
+                                        rating=rating,
+                                        comment=comment,
+                                    )
+
+                                    st.success("Rating saved.")
+                                    st.rerun()
+
+                                except Exception as e:
+                                    st.error("Could not save rating.")
+                                    st.caption(str(e))
+                                    
 # -----------------------------
 # My Profile
 # -----------------------------
