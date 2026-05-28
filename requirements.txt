@@ -1,5 +1,6 @@
 streamlit
-pandas
-requests
-google-genai
 supabase
+google-genai
+pandas
+folium
+streamlit-folium

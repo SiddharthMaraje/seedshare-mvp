@@ -1,557 +1,752 @@
+# app.py
+
 import streamlit as st
-import pandas as pd
-import requests
-import os
-from datetime import datetime
-from google import genai
 
-from supabase import create_client
+from streamlit_folium import st_folium
+from map_utils import create_seed_map
 
-# ------------------------------------------------------------
-# SeedShare / Community Seed Sharing MVP
-# Streamlit + Gemini AI
-# ------------------------------------------------------------
+from auth_utils import (
+    init_auth_state,
+    sign_up,
+    sign_in,
+    sign_out,
+    get_current_user,
+    is_logged_in,
+)
 
-APP_TITLE = "SeedShare Berlin MVP"
+from profile_utils import get_profile, upsert_profile
 
-# Optional old Ollama config kept for future fallback/local demo
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "deepseek-r1:7b"
+from listing_utils import (
+    get_all_listings,
+    get_my_listings,
+    create_listing,
+    delete_listing,
+)
 
-# Gemini model
-GEMINI_MODEL = "gemini-2.5-flash"
+from ai_utils import generate_balcony_gardening_advice
+
 
 st.set_page_config(
-    page_title=APP_TITLE,
+    page_title="SeedShare Berlin",
     page_icon="🌱",
-    layout="wide"
+    layout="wide",
 )
 
 
-# ------------------------------------------------------------
-# Data helpers
-# ------------------------------------------------------------
-
-# def load_seed_data():
-#     if DATA_FILE.exists():
-#         try:
-#             with open(DATA_FILE, "r", encoding="utf-8") as file:
-#                 return json.load(file)
-#         except json.JSONDecodeError:
-#             return []
-#     return []
+init_auth_state()
 
 
-# def save_seed_data(data):
-#     with open(DATA_FILE, "w", encoding="utf-8") as file:
-#         json.dump(data, file, indent=4, ensure_ascii=False)
+# -----------------------------
+# Header
+# -----------------------------
+
+st.title("🌱 SeedShare Berlin")
+st.caption("Community seed sharing and AI gardening help for Berlin urban gardeners")
 
 
-# def add_seed_listing(listing):
-#     data = load_seed_data()
-#     data.append(listing)
-#     save_seed_data(data)
+# -----------------------------
+# Sidebar authentication
+# -----------------------------
 
+st.sidebar.header("Account")
 
-# def get_sample_data():
-#     return [
-#         {
-#             "seed_name": "Cherry Tomato Seeds",
-#             "category": "Vegetable",
-#             "district": "Neukölln",
-#             "quantity": "Small handful",
-#             "balcony_suitability": "Sunny balcony",
-#             "experience_level": "Beginner-friendly",
-#             "description": "Good for containers. Needs sunlight and regular watering.",
-#             "owner_name": "Sofia",
-#             "contact": "sofia@example.com",
-#             "created_at": "Sample listing"
-#         },
-#         {
-#             "seed_name": "Basil Seeds",
-#             "category": "Herb",
-#             "district": "Kreuzberg",
-#             "quantity": "Half packet",
-#             "balcony_suitability": "Sunny or partially sunny balcony",
-#             "experience_level": "Beginner-friendly",
-#             "description": "Great for pots and kitchen windows. Best started in warm conditions.",
-#             "owner_name": "Jonas",
-#             "contact": "jonas@example.com",
-#             "created_at": "Sample listing"
-#         },
-#         {
-#             "seed_name": "Marigold Seeds",
-#             "category": "Flower",
-#             "district": "Prenzlauer Berg",
-#             "quantity": "Enough for 3-4 pots",
-#             "balcony_suitability": "Sunny balcony",
-#             "experience_level": "Beginner-friendly",
-#             "description": "Bright flowers, useful companion plant, easy to grow.",
-#             "owner_name": "Mina",
-#             "contact": "mina@example.com",
-#             "created_at": "Sample listing"
-#         }
-#     ]
+if is_logged_in():
+    user = get_current_user()
+    st.sidebar.success(f"Logged in as {user.email}")
 
-# ------------------------------------------------------------
-# Supabase data helpers
-# ------------------------------------------------------------
+    if st.sidebar.button("Log out"):
+        sign_out()
+        st.rerun()
 
-SUPABASE_TABLE = "seed_listings"
-
-
-def get_supabase_client():
-    supabase_url = st.secrets.get("SUPABASE_URL")
-    supabase_key = st.secrets.get("SUPABASE_KEY")
-
-    if not supabase_url or not supabase_key:
-        st.error(
-            "Supabase is not configured. Please add SUPABASE_URL and SUPABASE_KEY "
-            "to Streamlit secrets."
-        )
-        return None
-
-    return create_client(supabase_url, supabase_key)
-
-
-def load_seed_data():
-    try:
-        client = get_supabase_client()
-
-        if client is None:
-            return []
-
-        response = (
-            client
-            .table(SUPABASE_TABLE)
-            .select("*")
-            .order("id", desc=True)
-            .execute()
-        )
-
-        return response.data or []
-
-    except Exception as error:
-        st.error(f"Could not load seed listings from Supabase: {error}")
-        return []
-
-
-def save_seed_data(data):
-    """
-    Kept for compatibility.
-    For Supabase, we normally add rows one by one using add_seed_listing().
-    """
-    try:
-        client = get_supabase_client()
-
-        if client is None:
-            return
-
-        for item in data:
-            client.table(SUPABASE_TABLE).insert(item).execute()
-
-    except Exception as error:
-        st.error(f"Could not save seed listings to Supabase: {error}")
-
-
-def add_seed_listing(listing):
-    try:
-        client = get_supabase_client()
-
-        if client is None:
-            return
-
-        client.table(SUPABASE_TABLE).insert(listing).execute()
-
-    except Exception as error:
-        st.error(f"Could not add listing to Supabase: {error}")
-
-
-# ------------------------------------------------------------
-# AI helpers
-# ------------------------------------------------------------
-
-def get_gemini_api_key():
-    """
-    Reads the Gemini API key from Streamlit secrets first,
-    then from the local environment variable.
-
-    Recommended .streamlit/secrets.toml:
-    GEMINI_API_KEY = "your-api-key"
-    """
-    try:
-        if "GEMINI_API_KEY" in st.secrets:
-            return st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        pass
-
-    return os.getenv("GEMINI_API_KEY")
-
-
-def ask_gemini(prompt):
-    api_key = get_gemini_api_key()
-
-    if not api_key:
-        return (
-            "AI is not configured yet.\n\n"
-            "Please add your Gemini API key as GEMINI_API_KEY in "
-            ".streamlit/secrets.toml or as an environment variable."
-        )
-
-    try:
-        client = genai.Client(api_key=api_key)
-
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt
-        )
-
-        if hasattr(response, "text") and response.text:
-            return response.text
-
-        return "The AI service returned an empty response. Please try again."
-
-    except Exception as error:
-        return (
-            "AI recommendation could not be generated right now.\n\n"
-            f"Technical error: {error}\n\n"
-            "Fallback advice: Check the seed packet for sowing season, sunlight needs, "
-            "watering frequency, and expiry date. For Berlin balconies, herbs such as basil, "
-            "parsley, chives, and easy flowers such as marigold are often good beginner options "
-            "during the warmer growing season."
-        )
-
-
-def ask_deepseek(prompt):
-    """
-    Optional local Ollama fallback.
-    Not used by default, but kept for demo flexibility.
-    """
-    payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False
-    }
-
-    try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
-        response.raise_for_status()
-        result = response.json()
-        return result.get("response", "No response generated.")
-    except requests.exceptions.ConnectionError:
-        return (
-            "Could not connect to Ollama. Please make sure Ollama is running and the model "
-            f"'{OLLAMA_MODEL}' is available."
-        )
-    except requests.exceptions.Timeout:
-        return "The AI response took too long. Try a shorter request."
-    except Exception as error:
-        return f"AI error: {error}"
-
-
-def build_gardening_prompt(location, month, sunlight, balcony_size, experience, interest):
-    return f"""
-You are a friendly balcony gardening assistant for a community seed-sharing app in Berlin.
-
-Give practical, beginner-friendly advice.
-Keep the answer concise and structured.
-Avoid medical, legal, or guaranteed claims.
-Focus on seeds and seedlings suitable for balcony or container gardening.
-Mention that local conditions and seed packet instructions should be checked.
-
-User context:
-- City/location: {location}
-- Month/season: {month}
-- Balcony sunlight: {sunlight}
-- Balcony size: {balcony_size}
-- Gardening experience: {experience}
-- Plant interest: {interest}
-
-Please provide:
-1. 3 suitable seed or seedling recommendations
-2. Why they fit this balcony situation
-3. Simple care tips
-4. One common mistake to avoid
-5. A friendly note encouraging seed sharing with neighbours
-"""
-
-
-# ------------------------------------------------------------
-# UI
-# ------------------------------------------------------------
-
-st.title("🌱 SeedShare Berlin MVP")
-st.caption("A simple community seed and seedling sharing prototype for Berlin balcony growers.")
-
-with st.sidebar:
-    st.header("Navigation")
-    page = st.radio(
-        "Go to",
-        ["Home", "Browse Seeds", "Add Listing", "AI Gardening Assistant", "Project Notes"]
+else:
+    auth_tab = st.sidebar.radio(
+        "Choose action",
+        ["Login", "Sign up"],
     )
 
-    st.divider()
-    st.caption("MVP scope")
-    st.write("Seed listings + simple browsing + AI growing advice")
+    email = st.sidebar.text_input("Email")
+    password = st.sidebar.text_input("Password", type="password")
+
+    if auth_tab == "Login":
+        if st.sidebar.button("Login"):
+            try:
+                response = sign_in(email, password)
+
+                if response.user:
+                    st.sidebar.success("Login successful.")
+                    st.rerun()
+                else:
+                    st.sidebar.error("Login failed.")
+
+            except Exception as e:
+                st.sidebar.error("Login failed.")
+                st.sidebar.caption(str(e))
+
+    if auth_tab == "Sign up":
+        if st.sidebar.button("Create account"):
+            try:
+                response = sign_up(email, password)
+
+                if response.user:
+                    st.sidebar.success(
+                        "Account created. Please log in. If email confirmation is enabled, check your inbox."
+                    )
+                else:
+                    st.sidebar.error("Sign-up failed.")
+
+            except Exception as e:
+                st.sidebar.error("Sign-up failed.")
+                st.sidebar.caption(str(e))
 
 
-if page == "Home":
-    col1, col2 = st.columns([2, 1])
+# -----------------------------
+# Page tabs
+# -----------------------------
 
-    with col1:
-        st.subheader("Meet your gardening neighbour")
-        st.write(
-            "This MVP helps Berlin balcony gardeners share surplus seeds and seedlings with people nearby. "
-            "Beginners can discover what grows well locally, while experienced growers can share both plants and knowledge."
-        )
-
-        st.markdown("""
-        **Core idea:**  
-        Many people buy seed packets but only use a small amount. Instead of wasting the rest, they can share seeds with neighbours.
-
-        **MVP features:**
-        - Add a seed or seedling listing
-        - Browse available listings by district and category
-        - Get AI-supported balcony gardening tips
-        """)
-
-    with col2:
-        st.info(
-            "Demo flow:\n\n"
-            "1. Browse available seeds\n"
-            "2. Add a test listing\n"
-            "3. Ask the AI assistant what to grow\n"
-            "4. Discuss how this supports community sharing"
-        )
+home_tab, browse_tab, map_tab, add_tab, ai_tab, profile_tab, my_listings_tab = st.tabs(
+    [
+        "SeedShare Home",
+        "Browse Seeds",
+        "Seed Map",
+        "Add Listing",
+        "AI Gardening Assistant",
+        "My Profile",
+        "My Listings",
+    ]
+)
 
 
-elif page == "Browse Seeds":
-    st.subheader("Browse available seeds and seedlings")
+# -----------------------------
+# SeedShare Home
+# -----------------------------
 
-    data = load_seed_data()
-    if not data:
-        st.warning("No saved listings yet. Showing sample listings for demo purposes.")
-        
+with home_tab:
+    st.subheader("Welcome to SeedShare Berlin")
 
-    df = pd.DataFrame(data)
-
-    required_columns = ["district", "category", "seed_name"]
-    for column in required_columns:
-        if column not in df.columns:
-            df[column] = ""
+    listings = get_all_listings()
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        district_filter = st.selectbox(
-            "District",
-            ["All"] + sorted(df["district"].dropna().unique().tolist())
-        )
+        st.metric("Available Listings", len(listings))
 
     with col2:
-        category_filter = st.selectbox(
-            "Category",
-            ["All"] + sorted(df["category"].dropna().unique().tolist())
-        )
+        st.metric("City Focus", "Berlin")
 
     with col3:
-        search_term = st.text_input("Search by seed name")
+        st.metric("MVP Features", "Seed Sharing + AI")
 
-    filtered_df = df.copy()
+    st.markdown("---")
 
-    if district_filter != "All":
-        filtered_df = filtered_df[filtered_df["district"] == district_filter]
+    st.markdown(
+        """
+        SeedShare Berlin is a small community MVP for people who want to share, discover,
+        and grow seeds in Berlin.
 
-    if category_filter != "All":
-        filtered_df = filtered_df[filtered_df["category"] == category_filter]
+        With this app, users can:
 
-    if search_term:
-        filtered_df = filtered_df[
-            filtered_df["seed_name"].str.contains(search_term, case=False, na=False)
-        ]
+        - browse available seed listings
+        - create their own seed listings after login
+        - build a simple gardening profile
+        - manage their own listings
+        - use an AI assistant for beginner-friendly gardening advice
+        """
+    )
 
-    if filtered_df.empty:
-        st.info("No listings match your filters.")
+    st.info(
+        "This MVP focuses on simple community exchange, urban gardening, and AI-supported recommendations."
+    )
+
+# -----------------------------
+# Browse Seeds
+# -----------------------------
+
+
+with browse_tab:
+    st.subheader("Available Seed Listings")
+
+    listings = get_all_listings()
+
+    if not listings:
+        st.info("No seed listings yet.")
+
     else:
-        for index, row in filtered_df.iterrows():
-            with st.container(border=True):
-                col_a, col_b = st.columns([3, 1])
+        st.markdown("### Search and Filter")
 
-                with col_a:
-                    st.markdown(f"### {row.get('seed_name', 'Unnamed listing')}")
-                    st.write(row.get("description", "No description provided."))
-                    st.caption(
-                        f"Category: {row.get('category', 'N/A')} | "
-                        f"District: {row.get('district', 'N/A')} | "
-                        f"Quantity: {row.get('quantity', 'N/A')}"
-                    )
-                    st.caption(
-                        f"Balcony fit: {row.get('balcony_suitability', 'N/A')} | "
-                        f"Level: {row.get('experience_level', 'N/A')}"
-                    )
+        col1, col2, col3 = st.columns(3)
 
-                with col_b:
-                    st.write(f"Shared by: **{row.get('owner_name', 'Neighbour')}**")
-                    button_key = f"request_{index}_{row.get('seed_name', 'seed')}"
-                    if st.button(f"Request {row.get('seed_name', 'seed')}", key=button_key):
-                        st.success(
-                            f"Request simulated. In a real app, this would contact "
-                            f"{row.get('owner_name', 'the owner')}."
+        with col1:
+            search_text = st.text_input(
+                "Search by seed name, description, or owner",
+                placeholder="e.g. basil, tomato, balcony, Anna",
+            )
+
+        with col2:
+            category_filter = st.selectbox(
+                "Filter by category",
+                [
+                    "All",
+                    "Herb",
+                    "Vegetable",
+                    "Flower",
+                    "Fruit",
+                    "Pollinator-friendly",
+                    "Other",
+                ],
+            )
+
+        with col3:
+            district_filter = st.selectbox(
+                "Filter by Berlin district",
+                [
+                    "All",
+                    "Mitte",
+                    "Friedrichshain-Kreuzberg",
+                    "Pankow",
+                    "Charlottenburg-Wilmersdorf",
+                    "Spandau",
+                    "Steglitz-Zehlendorf",
+                    "Tempelhof-Schöneberg",
+                    "Neukölln",
+                    "Treptow-Köpenick",
+                    "Marzahn-Hellersdorf",
+                    "Lichtenberg",
+                    "Reinickendorf",
+                    "Other / Not specified",
+                ],
+            )
+
+        col4, col5 = st.columns(2)
+
+        with col4:
+            balcony_filter = st.selectbox(
+                "Filter by balcony condition",
+                [
+                    "All",
+                    "Full sun",
+                    "Partial sun",
+                    "Mostly shade",
+                    "Indoor / windowsill",
+                    "Flexible / easy-going",
+                ],
+            )
+
+        with col5:
+            suitable_filter = st.selectbox(
+                "Filter by suitability",
+                [
+                    "All",
+                    "Complete beginners",
+                    "Balcony gardeners",
+                    "Families / children",
+                    "Pollinators / bees",
+                    "Experienced gardeners",
+                    "Small spaces",
+                ],
+            )
+
+        filtered_listings = listings
+
+        if search_text:
+            search_lower = search_text.lower()
+
+            filtered_listings = [
+                listing for listing in filtered_listings
+                if search_lower in str(listing.get("seed_name", "")).lower()
+                or search_lower in str(listing.get("description", "")).lower()
+                or search_lower in str(listing.get("owner_name", "")).lower()
+                or search_lower in str(listing.get("contact", "")).lower()
+            ]
+
+        if category_filter != "All":
+            filtered_listings = [
+                listing for listing in filtered_listings
+                if listing.get("category") == category_filter
+            ]
+
+        if district_filter != "All":
+            filtered_listings = [
+                listing for listing in filtered_listings
+                if listing.get("berlin_district") == district_filter
+            ]
+
+        if balcony_filter != "All":
+            filtered_listings = [
+                listing for listing in filtered_listings
+                if listing.get("best_balcony_condition") == balcony_filter
+            ]
+
+        if suitable_filter != "All":
+            filtered_listings = [
+                listing for listing in filtered_listings
+                if listing.get("suitable_for") == suitable_filter
+            ]
+
+        st.markdown("---")
+        st.write(f"Showing **{len(filtered_listings)}** of **{len(listings)}** listings.")
+
+        if not filtered_listings:
+            st.warning("No listings match your search filters.")
+
+        else:
+            for listing in filtered_listings:
+                with st.container(border=True):
+                    st.markdown(f"### {listing.get('seed_name', 'Unnamed seed or seedling')}")
+                    st.write(f"**Category:** {listing.get('category', 'Not specified')}")
+                    st.write(f"**Best balcony condition:** {listing.get('best_balcony_condition', 'Not specified')}")
+                    st.write(f"**Suitable for:** {listing.get('suitable_for', 'Not specified')}")
+                    st.write(f"**Berlin district:** {listing.get('berlin_district', 'Not specified')}")
+                    st.write(f"**Quantity:** {listing.get('quantity', 'Not specified')}")
+                    st.write(f"**Shared by:** {listing.get('owner_name', 'Not specified')}")
+                    st.write(f"**Contact:** {listing.get('contact', 'Not specified')}")
+                    st.write(f"**Growing tip:** {listing.get('description', '')}")
+
+
+# -----------------------------
+# Seed Map
+# -----------------------------
+
+with map_tab:
+    st.subheader("Seed Map of Berlin")
+    st.write(
+        "Explore available seed and seedling listings by Berlin district. "
+        "Markers use approximate district locations, not exact addresses."
+    )
+
+    listings = get_all_listings()
+
+    if not listings:
+        st.info("No seed listings available for the map yet.")
+
+    else:
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            map_category_filter = st.selectbox(
+                "Map category filter",
+                [
+                    "All",
+                    "Herb",
+                    "Vegetable",
+                    "Flower",
+                    "Fruit",
+                    "Pollinator-friendly",
+                    "Other",
+                ],
+                key="map_category_filter",
+            )
+
+        with col2:
+            map_district_filter = st.selectbox(
+                "Map district filter",
+                [
+                    "All",
+                    "Mitte",
+                    "Friedrichshain-Kreuzberg",
+                    "Pankow",
+                    "Charlottenburg-Wilmersdorf",
+                    "Spandau",
+                    "Steglitz-Zehlendorf",
+                    "Tempelhof-Schöneberg",
+                    "Neukölln",
+                    "Treptow-Köpenick",
+                    "Marzahn-Hellersdorf",
+                    "Lichtenberg",
+                    "Reinickendorf",
+                    "Other / Not specified",
+                ],
+                key="map_district_filter",
+            )
+
+        with col3:
+            map_balcony_filter = st.selectbox(
+                "Map balcony condition filter",
+                [
+                    "All",
+                    "Full sun",
+                    "Partial sun",
+                    "Mostly shade",
+                    "Indoor / windowsill",
+                    "Flexible / easy-going",
+                ],
+                key="map_balcony_filter",
+            )
+
+        map_listings = listings
+
+        if map_category_filter != "All":
+            map_listings = [
+                listing for listing in map_listings
+                if listing.get("category") == map_category_filter
+            ]
+
+        if map_district_filter != "All":
+            map_listings = [
+                listing for listing in map_listings
+                if listing.get("berlin_district") == map_district_filter
+            ]
+
+        if map_balcony_filter != "All":
+            map_listings = [
+                listing for listing in map_listings
+                if listing.get("best_balcony_condition") == map_balcony_filter
+            ]
+
+        st.write(f"Showing **{len(map_listings)}** listing marker(s) on the map.")
+
+        if not map_listings:
+            st.warning("No listings match the selected map filters.")
+
+        else:
+            seed_map = create_seed_map(map_listings)
+
+            st_folium(
+                seed_map,
+                width=1000,
+                height=600,
+            )
+
+            st.caption(
+                "Privacy note: map markers show approximate Berlin district locations, not exact pickup addresses."
+            )
+
+# -----------------------------
+# Add Listing
+# -----------------------------
+
+with add_tab:
+    st.subheader("Add a Seed or Seedling Listing")
+
+    if not is_logged_in():
+        st.warning("Please log in to add a seed listing.")
+
+    else:
+        user = get_current_user()
+
+        with st.form("add_listing_form"):
+            seed_name = st.text_input(
+                "Seed or seedling name",
+                placeholder="e.g. Basil seedlings, tomato seeds, marigold seeds",
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                best_balcony_condition = st.selectbox(
+                    "Best balcony condition",
+                    [
+                        "Full sun",
+                        "Partial sun",
+                        "Mostly shade",
+                        "Indoor / windowsill",
+                        "Flexible / easy-going",
+                    ],
+                )
+
+                category = st.selectbox(
+                    "Category",
+                    [
+                        "Herb",
+                        "Vegetable",
+                        "Flower",
+                        "Fruit",
+                        "Pollinator-friendly",
+                        "Other",
+                    ],
+                )
+
+                suitable_for = st.selectbox(
+                    "Suitable for",
+                    [
+                        "Complete beginners",
+                        "Balcony gardeners",
+                        "Families / children",
+                        "Pollinators / bees",
+                        "Experienced gardeners",
+                        "Small spaces",
+                    ],
+                )
+
+                berlin_district = st.selectbox(
+                    "Berlin District",
+                    [
+                        "Mitte",
+                        "Friedrichshain-Kreuzberg",
+                        "Pankow",
+                        "Charlottenburg-Wilmersdorf",
+                        "Spandau",
+                        "Steglitz-Zehlendorf",
+                        "Tempelhof-Schöneberg",
+                        "Neukölln",
+                        "Treptow-Köpenick",
+                        "Marzahn-Hellersdorf",
+                        "Lichtenberg",
+                        "Reinickendorf",
+                        "Other / Not specified",
+                    ],
+                )
+
+            with col2:
+                owner_name = st.text_input(
+                    "Your name or nickname",
+                    placeholder="e.g. Anna, GreenBalcony92",
+                )
+
+                quantity = st.text_input(
+                    "Quantity",
+                    placeholder="e.g. 10 seeds, 3 seedlings, one small packet",
+                )
+
+                contact = st.text_input(
+                    "Contact",
+                    placeholder="e.g. email, Telegram, phone, or preferred contact method",
+                )
+
+            description = st.text_area(
+                "Short description / growing tip",
+                placeholder="e.g. Easy basil seedlings, good for sunny balconies. Water regularly and harvest often.",
+            )
+
+            submitted_listing = st.form_submit_button("Create listing")
+
+            if submitted_listing:
+                if not seed_name:
+                    st.error("Please enter a seed or seedling name.")
+                elif not owner_name:
+                    st.error("Please enter your name or nickname.")
+                elif not contact:
+                    st.error("Please enter a contact method.")
+                else:
+                    try:
+                        create_listing(
+                            seed_name=seed_name,
+                            best_balcony_condition=best_balcony_condition,
+                            category=category,
+                            suitable_for=suitable_for,
+                            berlin_district=berlin_district,
+                            owner_name=owner_name,
+                            quantity=quantity,
+                            contact=contact,
+                            description=description,
+                            user_id=user.id,
                         )
-                        st.write(f"Contact: {row.get('contact', 'Not provided')}")
+
+                        st.success("Listing created successfully.")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error("Could not create listing.")
+                        st.caption(str(e))
 
 
-elif page == "Add Listing":
-    st.subheader("Add a seed or seedling listing")
-    st.write("Use this form to share surplus seeds or seedlings with nearby balcony gardeners.")
+# -----------------------------
+# AI Gardening Assistant
+# -----------------------------
 
-    with st.form("add_seed_form"):
+with ai_tab:
+    st.subheader("AI Gardening Assistant")
+    st.write(
+        "Get personalized growing advice based on your balcony, season, sunlight, and gardening experience."
+    )
+
+    with st.form("ai_gardening_form"):
         col1, col2 = st.columns(2)
 
         with col1:
-            seed_name = st.text_input("Seed or seedling name", placeholder="e.g., Basil seeds")
-            category = st.selectbox("Category", ["Herb", "Vegetable", "Flower", "Other"])
-            district = st.selectbox(
-                "Berlin district / Kiez",
-                [
-                    "Neukölln", "Kreuzberg", "Friedrichshain", "Prenzlauer Berg",
-                    "Mitte", "Wedding", "Charlottenburg", "Tempelhof", "Other"
-                ]
+            ai_location = st.text_input(
+                "Location",
+                value="Berlin",
+                placeholder="e.g. Berlin, Neukölln, Prenzlauer Berg",
             )
-            quantity = st.text_input("Quantity", placeholder="e.g., Half packet, 5 seedlings")
+
+            balcony_size = st.selectbox(
+                "Balcony size",
+                [
+                    "Small windowsill",
+                    "Small balcony",
+                    "Medium balcony",
+                    "Large balcony",
+                    "Shared courtyard",
+                    "No balcony / indoor only",
+                ],
+            )
+
+            month_or_season = st.selectbox(
+                "Month or season",
+                [
+                    "January / Winter",
+                    "February / Winter",
+                    "March / Early spring",
+                    "April / Spring",
+                    "May / Late spring",
+                    "June / Early summer",
+                    "July / Summer",
+                    "August / Late summer",
+                    "September / Early autumn",
+                    "October / Autumn",
+                    "November / Late autumn",
+                    "December / Winter",
+                ],
+                index=4,
+            )
 
         with col2:
-            balcony_suitability = st.selectbox(
-                "Best balcony condition",
-                ["Sunny balcony", "Partially sunny balcony", "Shaded balcony", "Indoor/window", "Not sure"]
+            gardening_experience = st.selectbox(
+                "Gardening experience",
+                [
+                    "Complete beginner",
+                    "Beginner",
+                    "Some experience",
+                    "Experienced gardener",
+                ],
             )
-            experience_level = st.selectbox(
-                "Suitable for",
-                ["Beginner-friendly", "Some experience needed", "Experienced growers"]
+
+            balcony_sunlight = st.selectbox(
+                "Balcony sunlight",
+                [
+                    "Full sun, 6+ hours",
+                    "Partial sun, 3–6 hours",
+                    "Mostly shade, less than 3 hours",
+                    "Not sure",
+                ],
             )
-            owner_name = st.text_input("Your name or nickname", placeholder="e.g., Sofia")
-            contact = st.text_input("Contact", placeholder="Email or preferred contact")
 
-        description = st.text_area(
-            "Short description / growing tip",
-            placeholder="e.g., Grows well in pots, needs regular watering."
-        )
+            main_interest = st.selectbox(
+                "Main interest / seed type",
+                [
+                    "Herbs",
+                    "Flowers",
+                    "Vegetables",
+                    "Balcony-friendly fruits",
+                    "Pollinator-friendly plants",
+                    "Easy beginner plants",
+                    "Fast-growing seeds",
+                    "Child-friendly gardening",
+                    "Not sure, suggest for me",
+                ],
+            )
 
-        submitted = st.form_submit_button("Add listing")
+        submitted_ai = st.form_submit_button("Generate AI growing advice")
 
-        if submitted:
-            if not seed_name or not owner_name:
-                st.error("Please enter at least a seed name and your name/nickname.")
-            else:
-                listing = {
-                    "seed_name": seed_name,
-                    "category": category,
-                    "district": district,
-                    "quantity": quantity,
-                    "balcony_suitability": balcony_suitability,
-                    "experience_level": experience_level,
-                    "description": description,
-                    "owner_name": owner_name,
-                    "contact": contact,
-                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M")
-                }
+    if submitted_ai:
+        with st.spinner("Generating personalized gardening advice..."):
+            result = generate_balcony_gardening_advice(
+                location=ai_location,
+                balcony_size=balcony_size,
+                month_or_season=month_or_season,
+                gardening_experience=gardening_experience,
+                balcony_sunlight=balcony_sunlight,
+                main_interest=main_interest,
+            )
 
-                add_seed_listing(listing)
-                st.success("Listing added successfully. You can now see it under Browse Seeds.")
+            advice = result["advice"]
+            prompt = result["prompt"]
 
+        with st.expander("Your gardening profile for this recommendation"):
+            st.write(f"**Location:** {ai_location}")
+            st.write(f"**Balcony size:** {balcony_size}")
+            st.write(f"**Month or season:** {month_or_season}")
+            st.write(f"**Experience:** {gardening_experience}")
+            st.write(f"**Sunlight:** {balcony_sunlight}")
+            st.write(f"**Main interest:** {main_interest}")
 
-elif page == "AI Gardening Assistant":
-    st.subheader("AI Balcony Gardening Assistant")
-    st.write(
-        "Ask for practical growing suggestions based on Berlin balcony conditions. "
-        "This version uses Gemini via the current Google GenAI SDK."
-    )
+        st.markdown("### Personalized Growing Advice")
+        st.write(advice)
 
-    col1, col2 = st.columns(2)
+        st.markdown("---")
 
-    with col1:
-        location = st.text_input("Location", value="Berlin")
-        month = st.selectbox(
-            "Month / season",
-            [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ],
-            index=4
-        )
-        sunlight = st.selectbox(
-            "Balcony sunlight",
-            ["Full sun", "Partial sun", "Mostly shade", "Not sure"]
-        )
-
-    with col2:
-        balcony_size = st.selectbox(
-            "Balcony size",
-            ["Tiny balcony", "Small balcony", "Medium balcony", "Large balcony", "Windowsill only"]
-        )
-        experience = st.selectbox(
-            "Gardening experience",
-            ["Complete beginner", "Some experience", "Experienced gardener"]
-        )
-        interest = st.selectbox(
-            "Main interest",
-            ["Herbs", "Vegetables", "Flowers", "Easy beginner plants", "Anything suitable"]
-        )
-
-    if st.button("Get AI growing advice"):
-        prompt = build_gardening_prompt(
-            location,
-            month,
-            sunlight,
-            balcony_size,
-            experience,
-            interest
-        )
-
-        with st.spinner("Generating AI growing advice..."):
-            ai_response = ask_gemini(prompt)
-
-        st.markdown("### AI recommendation")
-        st.write(ai_response)
-
-        with st.expander("Show prompt used"):
-            st.code(prompt)
+        with st.expander("View AI Prompt Used"):
+            st.code(prompt, language="text")
 
 
-elif page == "Project Notes":
-    st.subheader("Project management notes")
+# -----------------------------
+# My Profile
+# -----------------------------
 
-    st.markdown("""
-    ### MVP goal
-    Validate whether a simple seed-sharing web app can make Berlin balcony gardening communities more visible and easier to access.
+with profile_tab:
+    st.subheader("My Profile")
 
-    ### In scope for 3-week module project
-    - Seed/seedling listing form
-    - Browse and filter listings
-    - Simulated request action
-    - AI-supported gardening advice
-    - Local JSON-based storage
+    if not is_logged_in():
+        st.warning("Please log in to create or edit your profile.")
 
-    ### Out of scope for MVP
-    - Real user accounts
-    - Payment systems
-    - Live chat
-    - Advanced maps/geolocation
-    - Complex moderation workflows
-    - Production-grade security
+    else:
+        user = get_current_user()
+        profile = get_profile(user.id)
 
-    ### AI use in the project
-    - Supports beginners with practical growing advice
-    - Reduces knowledge barrier for first-time balcony gardeners
-    - Makes the project more innovative while keeping the technical scope feasible
+        default_username = profile.get("username", "") if profile else ""
+        default_location = profile.get("location", "Berlin") if profile else "Berlin"
+        default_level = profile.get("gardening_level", "Beginner") if profile else "Beginner"
 
-    ### Technical risk note
-    External AI APIs can change model names, SDKs, or supported endpoints.  
-    This MVP reduces risk by using a current model name, checking for missing API keys, and showing fallback guidance if AI generation fails.
+        with st.form("profile_form"):
+            username = st.text_input("Username", value=default_username)
+            profile_location = st.text_input("Location", value=default_location)
 
-    ### Suggested success criteria
-    - A teammate can add a listing in under 2 minutes
-    - A teammate can find a relevant seed listing using filters
-    - A beginner receives understandable AI growing guidance
-    - The demo clearly communicates sustainability and community value
-    """)
+            gardening_level = st.selectbox(
+                "Gardening level",
+                ["Beginner", "Intermediate", "Advanced"],
+                index=["Beginner", "Intermediate", "Advanced"].index(default_level)
+                if default_level in ["Beginner", "Intermediate", "Advanced"]
+                else 0,
+            )
+
+            submitted_profile = st.form_submit_button("Save profile")
+
+            if submitted_profile:
+                try:
+                    upsert_profile(
+                        user_id=user.id,
+                        username=username,
+                        location=profile_location,
+                        gardening_level=gardening_level,
+                    )
+
+                    st.success("Profile saved.")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error("Could not save profile.")
+                    st.caption(str(e))
+
+
+# -----------------------------
+# My Listings
+# -----------------------------
+
+with my_listings_tab:
+    st.subheader("My Listings")
+
+    if not is_logged_in():
+        st.warning("Please log in to view your listings.")
+
+    else:
+        user = get_current_user()
+        my_listings = get_my_listings(user.id)
+
+        if not my_listings:
+            st.info("You have not created any listings yet.")
+
+        else:
+            for listing in my_listings:
+                with st.container(border=True):
+                    st.markdown(f"### {listing.get('seed_name', 'Unnamed seed or seedling')}")
+                    st.write(f"**Category:** {listing.get('category', 'Not specified')}")
+                    st.write(f"**Best balcony condition:** {listing.get('best_balcony_condition', 'Not specified')}")
+                    st.write(f"**Suitable for:** {listing.get('suitable_for', 'Not specified')}")
+                    st.write(f"**Berlin district:** {listing.get('berlin_district', 'Not specified')}")
+                    st.write(f"**Quantity:** {listing.get('quantity', 'Not specified')}")
+                    st.write(f"**Contact:** {listing.get('contact', 'Not specified')}")
+                    st.write(f"**Growing tip:** {listing.get('description', '')}")
+
+                    if st.button(
+                        "Delete listing",
+                        key=f"delete_{listing.get('id')}",
+                    ):
+                        try:
+                            delete_listing(listing.get("id"))
+
+                            st.success("Listing deleted.")
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error("Could not delete listing.")
+                            st.caption(str(e))
