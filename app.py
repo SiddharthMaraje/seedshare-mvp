@@ -13,7 +13,6 @@ from supabase import create_client
 # ------------------------------------------------------------
 
 APP_TITLE = "SeedShare Berlin MVP"
-DATA_FILE = Path("seed_listings.json")
 
 # Optional old Ollama config kept for future fallback/local demo
 OLLAMA_URL = "http://localhost:11434/api/generate"
