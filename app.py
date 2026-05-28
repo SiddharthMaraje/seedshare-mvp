@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
 import requests
-import json
 import os
-from pathlib import Path
 from datetime import datetime
-
 from google import genai
+
+from supabase import create_client
 
 # ------------------------------------------------------------
 # SeedShare / Community Seed Sharing MVP
@@ -34,66 +33,139 @@ st.set_page_config(
 # Data helpers
 # ------------------------------------------------------------
 
+# def load_seed_data():
+#     if DATA_FILE.exists():
+#         try:
+#             with open(DATA_FILE, "r", encoding="utf-8") as file:
+#                 return json.load(file)
+#         except json.JSONDecodeError:
+#             return []
+#     return []
+
+
+# def save_seed_data(data):
+#     with open(DATA_FILE, "w", encoding="utf-8") as file:
+#         json.dump(data, file, indent=4, ensure_ascii=False)
+
+
+# def add_seed_listing(listing):
+#     data = load_seed_data()
+#     data.append(listing)
+#     save_seed_data(data)
+
+
+# def get_sample_data():
+#     return [
+#         {
+#             "seed_name": "Cherry Tomato Seeds",
+#             "category": "Vegetable",
+#             "district": "Neukölln",
+#             "quantity": "Small handful",
+#             "balcony_suitability": "Sunny balcony",
+#             "experience_level": "Beginner-friendly",
+#             "description": "Good for containers. Needs sunlight and regular watering.",
+#             "owner_name": "Sofia",
+#             "contact": "sofia@example.com",
+#             "created_at": "Sample listing"
+#         },
+#         {
+#             "seed_name": "Basil Seeds",
+#             "category": "Herb",
+#             "district": "Kreuzberg",
+#             "quantity": "Half packet",
+#             "balcony_suitability": "Sunny or partially sunny balcony",
+#             "experience_level": "Beginner-friendly",
+#             "description": "Great for pots and kitchen windows. Best started in warm conditions.",
+#             "owner_name": "Jonas",
+#             "contact": "jonas@example.com",
+#             "created_at": "Sample listing"
+#         },
+#         {
+#             "seed_name": "Marigold Seeds",
+#             "category": "Flower",
+#             "district": "Prenzlauer Berg",
+#             "quantity": "Enough for 3-4 pots",
+#             "balcony_suitability": "Sunny balcony",
+#             "experience_level": "Beginner-friendly",
+#             "description": "Bright flowers, useful companion plant, easy to grow.",
+#             "owner_name": "Mina",
+#             "contact": "mina@example.com",
+#             "created_at": "Sample listing"
+#         }
+#     ]
+
+# ------------------------------------------------------------
+# Supabase data helpers
+# ------------------------------------------------------------
+
+SUPABASE_TABLE = "seed_listings"
+
+
+def get_supabase_client():
+    supabase_url = st.secrets.get("SUPABASE_URL")
+    supabase_key = st.secrets.get("SUPABASE_KEY")
+
+    if not supabase_url or not supabase_key:
+        st.error(
+            "Supabase is not configured. Please add SUPABASE_URL and SUPABASE_KEY "
+            "to Streamlit secrets."
+        )
+        return None
+
+    return create_client(supabase_url, supabase_key)
+
+
 def load_seed_data():
-    if DATA_FILE.exists():
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as file:
-                return json.load(file)
-        except json.JSONDecodeError:
+    try:
+        client = get_supabase_client()
+
+        if client is None:
             return []
-    return []
+
+        response = (
+            client
+            .table(SUPABASE_TABLE)
+            .select("*")
+            .order("id", desc=True)
+            .execute()
+        )
+
+        return response.data or []
+
+    except Exception as error:
+        st.error(f"Could not load seed listings from Supabase: {error}")
+        return []
 
 
 def save_seed_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4, ensure_ascii=False)
+    """
+    Kept for compatibility.
+    For Supabase, we normally add rows one by one using add_seed_listing().
+    """
+    try:
+        client = get_supabase_client()
+
+        if client is None:
+            return
+
+        for item in data:
+            client.table(SUPABASE_TABLE).insert(item).execute()
+
+    except Exception as error:
+        st.error(f"Could not save seed listings to Supabase: {error}")
 
 
 def add_seed_listing(listing):
-    data = load_seed_data()
-    data.append(listing)
-    save_seed_data(data)
+    try:
+        client = get_supabase_client()
 
+        if client is None:
+            return
 
-def get_sample_data():
-    return [
-        {
-            "seed_name": "Cherry Tomato Seeds",
-            "category": "Vegetable",
-            "district": "Neukölln",
-            "quantity": "Small handful",
-            "balcony_suitability": "Sunny balcony",
-            "experience_level": "Beginner-friendly",
-            "description": "Good for containers. Needs sunlight and regular watering.",
-            "owner_name": "Sofia",
-            "contact": "sofia@example.com",
-            "created_at": "Sample listing"
-        },
-        {
-            "seed_name": "Basil Seeds",
-            "category": "Herb",
-            "district": "Kreuzberg",
-            "quantity": "Half packet",
-            "balcony_suitability": "Sunny or partially sunny balcony",
-            "experience_level": "Beginner-friendly",
-            "description": "Great for pots and kitchen windows. Best started in warm conditions.",
-            "owner_name": "Jonas",
-            "contact": "jonas@example.com",
-            "created_at": "Sample listing"
-        },
-        {
-            "seed_name": "Marigold Seeds",
-            "category": "Flower",
-            "district": "Prenzlauer Berg",
-            "quantity": "Enough for 3-4 pots",
-            "balcony_suitability": "Sunny balcony",
-            "experience_level": "Beginner-friendly",
-            "description": "Bright flowers, useful companion plant, easy to grow.",
-            "owner_name": "Mina",
-            "contact": "mina@example.com",
-            "created_at": "Sample listing"
-        }
-    ]
+        client.table(SUPABASE_TABLE).insert(listing).execute()
+
+    except Exception as error:
+        st.error(f"Could not add listing to Supabase: {error}")
 
 
 # ------------------------------------------------------------
