@@ -331,7 +331,7 @@ elif page == "Browse Seeds":
     data = load_seed_data()
     if not data:
         st.warning("No saved listings yet. Showing sample listings for demo purposes.")
-        data = get_sample_data()
+        
 
     df = pd.DataFrame(data)
 
