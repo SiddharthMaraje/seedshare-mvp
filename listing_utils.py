@@ -16,6 +16,20 @@ def get_all_listings():
     return response.data or []
 
 
+def get_available_listings():
+    supabase = get_supabase_client()
+
+    response = (
+        supabase.table("seed_listings")
+        .select("*")
+        .eq("status", "Available")
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return response.data or []
+
+
 def get_my_listings(user_id: str):
     supabase = get_supabase_client()
 
@@ -55,11 +69,34 @@ def create_listing(
         "contact": contact,
         "description": description,
         "user_id": user_id,
+        "status": "Available",
     }
 
     response = (
         supabase.table("seed_listings")
         .insert(listing_data)
+        .execute()
+    )
+
+    return response
+
+
+def update_listing_status(listing_id: int, status: str):
+    supabase = get_supabase_client()
+
+    update_data = {
+        "status": status,
+    }
+
+    if status == "Exchanged":
+        update_data["exchanged_at"] = "now()"
+    else:
+        update_data["exchanged_at"] = None
+
+    response = (
+        supabase.table("seed_listings")
+        .update(update_data)
+        .eq("id", listing_id)
         .execute()
     )
 
