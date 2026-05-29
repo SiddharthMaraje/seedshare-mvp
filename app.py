@@ -169,7 +169,6 @@ with home_tab:
 # Browse Seeds
 # -----------------------------
 
-
 with browse_tab:
     st.subheader("Available Seed Listings")
 
@@ -674,57 +673,57 @@ with community_tab:
     st.subheader("Community Profiles")
     st.write("Browse SeedShare Berlin users and rate community interactions.")
 
-    profiles = get_all_profiles()
-
-    if not profiles:
-        st.info("No community profiles yet.")
+    if not is_logged_in():
+        st.warning("Please log in to view Community Profiles.")
 
     else:
-        search_profile = st.text_input(
-            "Search profiles",
-            placeholder="Search by username, location, or gardening level",
-        )
+        profiles = get_all_profiles()
 
-        filtered_profiles = profiles
+        if not profiles:
+            st.info("No community profiles yet.")
 
-        if search_profile:
-            search_lower = search_profile.lower()
+        else:
+            search_profile = st.text_input(
+                "Search profiles",
+                placeholder="Search by username, location, or gardening level",
+            )
 
-            filtered_profiles = [
-                profile for profile in filtered_profiles
-                if search_lower in str(profile.get("username", "")).lower()
-                or search_lower in str(profile.get("location", "")).lower()
-                or search_lower in str(profile.get("gardening_level", "")).lower()
-            ]
+            filtered_profiles = profiles
 
-        st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
+            if search_profile:
+                search_lower = search_profile.lower()
 
-        for profile in filtered_profiles:
-            profile_id = profile.get("id")
-            username = profile.get("username", "Unnamed user")
-            location = profile.get("location", "Not specified")
-            gardening_level = profile.get("gardening_level", "Not specified")
+                filtered_profiles = [
+                    profile for profile in filtered_profiles
+                    if search_lower in str(profile.get("username", "")).lower()
+                    or search_lower in str(profile.get("location", "")).lower()
+                    or search_lower in str(profile.get("gardening_level", "")).lower()
+                ]
 
-            rating_summary = get_rating_summary(profile_id)
-            average_rating = rating_summary["average"]
-            rating_count = rating_summary["count"]
+            st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
 
-            with st.container(border=True):
-                st.markdown(f"### {username}")
-                st.write(f"**Location:** {location}")
-                st.write(f"**Gardening level:** {gardening_level}")
+            for profile in filtered_profiles:
+                profile_id = profile.get("id")
+                username = profile.get("username", "Unnamed user")
+                location = profile.get("location", "Not specified")
+                gardening_level = profile.get("gardening_level", "Not specified")
 
-                if rating_count == 0:
-                    st.write("**Rating:** No ratings yet")
-                else:
-                    st.write(
-                        f"**Rating:** ⭐ {average_rating}/5 from {rating_count} rating(s)"
-                    )
+                rating_summary = get_rating_summary(profile_id)
+                average_rating = rating_summary["average"]
+                rating_count = rating_summary["count"]
 
-                if not is_logged_in():
-                    st.info("Log in to rate this user.")
+                with st.container(border=True):
+                    st.markdown(f"### {username}")
+                    st.write(f"**Location:** {location}")
+                    st.write(f"**Gardening level:** {gardening_level}")
 
-                else:
+                    if rating_count == 0:
+                        st.write("**Rating:** No ratings yet")
+                    else:
+                        st.write(
+                            f"**Rating:** ⭐ {average_rating}/5 from {rating_count} rating(s)"
+                        )
+
                     current_user = get_current_user()
 
                     if current_user.id == profile_id:
