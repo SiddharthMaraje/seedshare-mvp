@@ -895,6 +895,10 @@ with profile_tab:
                     st.error("Please enter a username or nickname.")
                 elif not neighbourhood:
                     st.error("Please enter your neighbourhood.")
+                elif not looking_for:
+                    st.error("Please enter what you are looking for. This is needed for matching.")
+                elif not offering:
+                    st.error("Please enter what you can offer. This helps other users match with you.")
                 else:
                     try:
                         upsert_profile(
@@ -951,6 +955,9 @@ with profile_tab:
                         st.write(f"**Gardening level:** {matched_profile.get('gardening_level', 'Not specified')}")
                         st.write(f"**Offers:** {matched_profile.get('offering', 'Not specified')}")
                         st.write(f"**Bio:** {matched_profile.get('short_bio', '')}")
+                        st.write(f"**Match type:** {match.get('match_type', 'Match')}")
+                        st.write(f"**Match score:** {match.get('match_score', 0)}/100")
+                        st.write(f"**Why this match:** {match.get('match_reason', '')}")
 
                         if matched_listings:
                             st.markdown("**Available listings:**")
