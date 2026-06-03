@@ -93,6 +93,23 @@ def inject_design():
             font-weight: 700;
         }
 
+        .stRadio div[role="radiogroup"] {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.55rem;
+            margin-top: 0.35rem;
+            margin-bottom: 1.35rem;
+        }
+
+        .stRadio div[role="radiogroup"] label {
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.25rem 0.65rem;
+            box-shadow: 0 8px 20px rgba(37, 77, 23, 0.06);
+        }
+
         h1, h2, h3 {
             font-family: 'Cormorant Garamond', serif;
             color: var(--forest);
@@ -110,6 +127,12 @@ def inject_design():
         section[data-testid="stSidebar"] {
             background: var(--cream2);
             border-right: 1px solid var(--border);
+        }
+
+        section[data-testid="stSidebar"] .stButton > button {
+            width: 100%;
+            justify-content: flex-start;
+            text-align: left;
         }
 
         div.stButton > button,
@@ -334,26 +357,52 @@ def inject_design():
         }
 
         @media (max-width: 900px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 1rem;
+            }
+
             .hero {
-                padding: 2rem;
-                min-height: 620px;
+                padding: 1.6rem;
+                min-height: auto;
+                border-radius: 28px;
             }
 
             .hero h1 {
-                font-size: 3.3rem !important;
+                font-size: 3rem !important;
             }
 
-            .float-one {
-                right: 1.2rem;
-                top: auto;
-                bottom: 13rem;
-                width: 230px;
+            .hero p {
+                font-size: 1rem;
+                line-height: 1.55;
             }
 
+            .page-header {
+                padding: 1.5rem;
+                border-radius: 26px;
+            }
+
+            .page-header h1 {
+                font-size: 2.6rem !important;
+            }
+
+            .float-one,
             .float-two {
-                right: 4rem;
-                bottom: 2rem;
-                width: 230px;
+                display: none;
+            }
+
+            .stRadio div[role="radiogroup"] {
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+                margin-top: 0.6rem;
+                margin-bottom: 1.1rem;
+            }
+
+            .stRadio div[role="radiogroup"] label {
+                min-width: max-content;
             }
         }
         </style>
@@ -438,76 +487,7 @@ def profile_card(profile, rating_summary=None):
 
 
 # -----------------------------
-# Sidebar authentication
-# -----------------------------
-
-with st.sidebar:
-    st.markdown("## 🌱 Sprouty")
-    st.caption("SeedShare Berlin")
-    st.markdown("**Share seeds, grow together.**")
-    st.divider()
-
-    st.header("Account")
-
-    if is_logged_in():
-        user = get_current_user()
-        st.success(f"Logged in as {user.email}")
-
-        if st.button("Log out"):
-            sign_out()
-            st.rerun()
-
-    else:
-        auth_tab = st.radio(
-            "Choose action",
-            ["Login", "Sign up"],
-        )
-
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-
-        if auth_tab == "Login":
-            if st.button("Login"):
-                try:
-                    response = sign_in(email, password)
-
-                    if response.user:
-                        st.success("Login successful.")
-                        st.rerun()
-                    else:
-                        st.error("Login failed.")
-
-                except Exception as e:
-                    st.error("Login failed.")
-                    st.caption(str(e))
-
-        if auth_tab == "Sign up":
-            if st.button("Create account"):
-                try:
-                    response = sign_up(email, password)
-
-                    if response.user:
-                        st.success(
-                            "Account created. Please log in. If email confirmation is enabled, check your inbox."
-                        )
-                    else:
-                        st.error("Sign-up failed.")
-
-                except Exception as e:
-                    st.error("Sign-up failed.")
-                    st.caption(str(e))
-
-
-# -----------------------------
-# Session state
-# -----------------------------
-
-if "selected_profile_id" not in st.session_state:
-    st.session_state.selected_profile_id = None
-
-
-# -----------------------------
-# Tabs
+# Page navigation state
 # -----------------------------
 
 PAGES = [
@@ -527,17 +507,102 @@ if "current_page" not in st.session_state:
 if st.session_state.current_page not in PAGES:
     st.session_state.current_page = "Home"
 
-selected_page = st.radio(
-    "Navigation",
-    PAGES,
-    index=PAGES.index(st.session_state.current_page),
-    horizontal=True,
-    label_visibility="collapsed",
-)
 
-if selected_page != st.session_state.current_page:
-    st.session_state.current_page = selected_page
+def go_to_page(page_name: str):
+    st.session_state.current_page = page_name
     st.rerun()
+
+
+# -----------------------------
+# Sidebar authentication and navigation
+# -----------------------------
+
+with st.sidebar:
+    st.header("Account")
+
+    if is_logged_in():
+        user = get_current_user()
+        st.success(f"Logged in as {user.email}")
+
+        if st.button("Log out", use_container_width=True):
+            sign_out()
+            st.rerun()
+
+    else:
+        auth_tab = st.radio(
+            "Choose action",
+            ["Login", "Sign up"],
+        )
+
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
+
+        if auth_tab == "Login":
+            if st.button("Login", use_container_width=True):
+                try:
+                    response = sign_in(email, password)
+
+                    if response.user:
+                        st.success("Login successful.")
+                        st.rerun()
+                    else:
+                        st.error("Login failed.")
+
+                except Exception as e:
+                    st.error("Login failed.")
+                    st.caption(str(e))
+
+        if auth_tab == "Sign up":
+            if st.button("Create account", use_container_width=True):
+                try:
+                    response = sign_up(email, password)
+
+                    if response.user:
+                        st.success(
+                            "Account created. Please log in. If email confirmation is enabled, check your inbox."
+                        )
+                    else:
+                        st.error("Sign-up failed.")
+
+                except Exception as e:
+                    st.error("Sign-up failed.")
+                    st.caption(str(e))
+
+    st.divider()
+    st.markdown("### Pages")
+
+    page_icons = {
+        "Home": "🏠",
+        "Browse Seeds": "🌿",
+        "Seed Map": "🗺️",
+        "Add Listing": "＋",
+        "AI Assistant": "🪴",
+        "Community": "👥",
+        "My Profile": "👤",
+        "My Listings": "📦",
+    }
+
+    for page_name in PAGES:
+        label = f"{page_icons.get(page_name, '•')} {page_name}"
+        if st.button(label, key=f"sidebar_nav_{page_name}", use_container_width=True):
+            go_to_page(page_name)
+
+
+# -----------------------------
+# Session state
+# -----------------------------
+
+if "selected_profile_id" not in st.session_state:
+    st.session_state.selected_profile_id = None
+
+
+# -----------------------------
+# Navigation helper
+# -----------------------------
+
+def render_navigation():
+    # Navigation is now handled by clickable buttons in the sidebar.
+    return
 
 
 # -----------------------------
@@ -565,6 +630,8 @@ if st.session_state.current_page == "Home":
         """,
         unsafe_allow_html=True,
     )
+
+    render_navigation()
 
     hero_col1, hero_col2, hero_col3 = st.columns([1, 1, 4])
 
@@ -632,6 +699,7 @@ if st.session_state.current_page == "Home":
 # -----------------------------
 
 if st.session_state.current_page == "Browse Seeds":
+    render_navigation()
     st.markdown('<div id="browse-seeds"></div>', unsafe_allow_html=True)
     page_header(
         "Browse Seeds",
@@ -814,6 +882,7 @@ if st.session_state.current_page == "Browse Seeds":
 # -----------------------------
 
 if st.session_state.current_page == "Seed Map":
+    render_navigation()
     page_header(
         "Seed Map",
         "Discover available seeds near you across Berlin. Markers use approximate district locations, not exact addresses.",
@@ -861,6 +930,7 @@ if st.session_state.current_page == "Seed Map":
 # -----------------------------
 
 if st.session_state.current_page == "Add Listing":
+    render_navigation()
     st.markdown('<div id="share-your-seeds"></div>', unsafe_allow_html=True)
     page_header(
         "Share Your Seeds",
@@ -996,6 +1066,7 @@ if st.session_state.current_page == "Add Listing":
 # -----------------------------
 
 if st.session_state.current_page == "AI Assistant":
+    render_navigation()
     page_header(
         "AI Gardening Assistant",
         "Get personalized growing advice based on your balcony, season, sunlight, and gardening experience.",
@@ -1139,6 +1210,7 @@ if st.session_state.current_page == "AI Assistant":
 # -----------------------------
 
 if st.session_state.current_page == "Community":
+    render_navigation()
     page_header(
         "Community Gardeners",
         "Browse Sprouty users, view public profiles, and rate community interactions.",
@@ -1288,6 +1360,7 @@ if st.session_state.current_page == "Community":
 # -----------------------------
 
 if st.session_state.current_page == "My Profile":
+    render_navigation()
     page_header(
         "My Profile",
         "Manage your gardener profile, seed matching preferences, and community identity.",
@@ -1472,6 +1545,7 @@ if st.session_state.current_page == "My Profile":
 # -----------------------------
 
 if st.session_state.current_page == "My Listings":
+    render_navigation()
     page_header(
         "My Listings",
         "Manage the seeds and seedlings you have shared with the community.",
