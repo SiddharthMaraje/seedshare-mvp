@@ -53,17 +53,18 @@ def inject_design():
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         :root {
-            --forest: #254D17;
+            --forest: #1F5A16;
+            --forest-dark: #143F0F;
             --leaf: #6FAE4F;
             --sage: #E8E6DA;
             --cream: #F8F6F1;
             --cream2: #F1EEE5;
-            --text: #2A2A2A;
+            --text: #25272B;
             --muted: #6B6B5F;
-            --border: rgba(37, 77, 23, 0.16);
+            --border: rgba(37, 77, 23, 0.14);
             --shadow: 0 16px 40px rgba(37, 77, 23, 0.10);
         }
 
@@ -82,15 +83,68 @@ def inject_design():
             padding-bottom: 4rem;
         }
 
-        div[role="radiogroup"] {
-            justify-content: center;
-            gap: 0.25rem;
+        h1, h2, h3, h4, h5, h6, p, label, span, div {
+            color: var(--text);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+        }
+
+        h1 { font-size: 3.1rem !important; }
+        h2 { font-size: 2.15rem !important; }
+
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #F7F4EE 0%, #EFEAE0 100%);
+            border-right: 1px solid var(--border);
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: var(--text) !important;
+        }
+
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span,
+        section[data-testid="stSidebar"] div,
+        section[data-testid="stSidebar"] h1,
+        section[data-testid="stSidebar"] h2,
+        section[data-testid="stSidebar"] h3 {
+            color: var(--text) !important;
+        }
+
+        section[data-testid="stSidebar"] h1,
+        section[data-testid="stSidebar"] h2,
+        section[data-testid="stSidebar"] h3 {
+            font-weight: 900;
+        }
+
+        section[data-testid="stSidebar"] input {
+            background: #FFFFFF !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 14px !important;
+        }
+
+        section[data-testid="stSidebar"] input::placeholder {
+            color: #8A8A83 !important;
+            opacity: 1 !important;
+        }
+
+        section[data-testid="stSidebar"] div[role="radiogroup"] {
+            display: block !important;
             margin-bottom: 1rem;
         }
 
-        div[role="radiogroup"] label {
-            font-size: 0.85rem;
-            font-weight: 700;
+        section[data-testid="stSidebar"] div[role="radiogroup"] label {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            padding: 0.15rem 0 !important;
+            margin: 0.15rem 0 !important;
+            color: var(--text) !important;
         }
 
         .stRadio div[role="radiogroup"] {
@@ -103,42 +157,18 @@ def inject_design():
         }
 
         .stRadio div[role="radiogroup"] label {
-            background: rgba(255, 255, 255, 0.76);
+            background: rgba(255, 255, 255, 0.82);
             border: 1px solid var(--border);
             border-radius: 999px;
             padding: 0.25rem 0.65rem;
             box-shadow: 0 8px 20px rgba(37, 77, 23, 0.06);
-        }
-
-        h1, h2, h3 {
-            font-family: 'Cormorant Garamond', serif;
-            color: var(--forest);
-            letter-spacing: -0.03em;
-        }
-
-        h1 {
-            font-size: 3.2rem !important;
-        }
-
-        h2 {
-            font-size: 2.25rem !important;
-        }
-
-        section[data-testid="stSidebar"] {
-            background: var(--cream2);
-            border-right: 1px solid var(--border);
-        }
-
-        section[data-testid="stSidebar"] .stButton > button {
-            width: 100%;
-            justify-content: flex-start;
-            text-align: left;
+            color: var(--text) !important;
         }
 
         div.stButton > button,
         div.stFormSubmitButton > button {
             background: var(--forest);
-            color: white;
+            color: #FFFFFF !important;
             border: 0;
             border-radius: 999px;
             padding: 0.7rem 1.25rem;
@@ -146,25 +176,90 @@ def inject_design():
             box-shadow: 0 10px 24px rgba(37, 77, 23, 0.18);
         }
 
+        div.stButton > button p,
+        div.stButton > button span,
+        div.stButton > button div {
+            color: #FFFFFF !important;
+        }
+
         div.stButton > button:hover,
         div.stFormSubmitButton > button:hover {
-            background: #1E3E13;
-            color: white;
+            background: #194B12;
+            color: white !important;
             border: 0;
         }
 
-        div[data-testid="stMetric"] {
-            background: rgba(255, 255, 255, 0.76);
+        section[data-testid="stSidebar"] .stButton > button {
+            width: 100%;
+            justify-content: flex-start;
+            text-align: left;
+            background: rgba(255,255,255,0.62);
+            color: #000000 !important;
             border: 1px solid var(--border);
+            box-shadow: none;
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.35rem;
+            font-weight: 800;
+        }
+
+        section[data-testid="stSidebar"] .stButton > button * {
+            color: #000000 !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton > button:hover {
+            background: rgba(232,230,218,0.95);
+            color: var(--forest) !important;
+            border: 1px solid var(--border);
+        }
+
+        section[data-testid="stSidebar"] div.stFormSubmitButton > button,
+        section[data-testid="stSidebar"] div.stButton:first-child > button {
+            color: white !important;
+        }
+
+
+        .sidebar-brand-card {
+            margin-top: 1.4rem;
+            display: flex;
+            gap: 0.9rem;
+            align-items: center;
+            background: linear-gradient(135deg, #E8E6DA 0%, #F8F6F1 100%);
             border-radius: 22px;
+            padding: 1.1rem;
+            border: 1px solid var(--border);
+        }
+
+        .sidebar-brand-icon {
+            font-size: 1.6rem;
+        }
+
+        .sidebar-brand-card strong {
+            color: var(--text) !important;
+            font-weight: 900;
+        }
+
+        .sidebar-brand-card span {
+            color: var(--text) !important;
+            font-size: 0.9rem;
+        }
+
+        div[data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 24px;
             padding: 1rem;
             box-shadow: var(--shadow);
+        }
+
+        div[data-testid="stMetric"] * {
+            color: var(--text) !important;
         }
 
         .hero {
             background:
                 radial-gradient(circle at 78% 24%, rgba(111, 174, 79, 0.38), transparent 28%),
-                linear-gradient(135deg, #254D17 0%, #17350F 100%);
+                linear-gradient(135deg, #255C1B 0%, #12390E 100%);
             border-radius: 34px;
             padding: 3rem;
             min-height: 470px;
@@ -184,15 +279,16 @@ def inject_design():
         }
 
         .hero h1 em {
-            color: #DCEBD0;
+            color: #DCEBD0 !important;
             font-style: italic;
         }
 
         .hero p {
-            color: #F1F6EA;
+            color: #FFFFFF !important;
             font-size: 1.15rem;
             line-height: 1.65;
-            max-width: 560px;
+            max-width: 620px;
+            font-weight: 600;
         }
 
         .hero-kicker {
@@ -202,63 +298,8 @@ def inject_design():
             border-radius: 999px;
             padding: 0.45rem 0.85rem;
             font-weight: 800;
-            color: #F8F6F1;
-            margin-bottom: 1.1rem;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 0.8rem;
-            flex-wrap: wrap;
-            margin-top: 1.4rem;
-        }
-
-        .cta-primary,
-        .cta-secondary {
-            display: inline-flex;
-            text-decoration: none !important;
-            border-radius: 999px;
-            padding: 0.85rem 1.2rem;
-            font-weight: 900;
-        }
-
-        .cta-primary {
-            background: #F8F6F1;
-            color: var(--forest) !important;
-        }
-
-        .cta-secondary {
-            background: transparent;
             color: #F8F6F1 !important;
-            border: 1px solid rgba(255,255,255,0.45);
-        }
-
-        .floating-card {
-            background: rgba(248, 246, 241, 0.96);
-            border-radius: 26px;
-            padding: 1.15rem;
-            border: 1px solid rgba(255,255,255,0.45);
-            box-shadow: 0 18px 40px rgba(0,0,0,0.18);
-            color: var(--text);
-            position: absolute;
-            width: 260px;
-        }
-
-        .floating-card h3 {
-            margin: 0.2rem 0;
-            font-size: 1.45rem !important;
-        }
-
-        .float-one {
-            right: 3rem;
-            top: 4rem;
-            transform: rotate(2deg);
-        }
-
-        .float-two {
-            right: 9rem;
-            bottom: 3rem;
-            transform: rotate(-3deg);
+            margin-bottom: 1.1rem;
         }
 
         .page-header {
@@ -271,7 +312,7 @@ def inject_design():
         }
 
         .page-header p {
-            color: var(--muted);
+            color: var(--muted) !important;
             font-size: 1.05rem;
             max-width: 720px;
         }
@@ -279,12 +320,16 @@ def inject_design():
         .section-card,
         .seed-card,
         .profile-card {
-            background: rgba(255,255,255,0.80);
+            background: rgba(255,255,255,0.86);
             border: 1px solid var(--border);
             border-radius: 26px;
             padding: 1.25rem;
             box-shadow: var(--shadow);
             margin-bottom: 1rem;
+        }
+
+        .section-card *, .seed-card *, .profile-card * {
+            color: var(--text) !important;
         }
 
         .seed-card h3,
@@ -295,14 +340,18 @@ def inject_design():
 
         .mini-title {
             font-weight: 900;
-            color: var(--forest);
+            color: var(--forest) !important;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             font-size: 0.76rem;
         }
 
+        .seed-meta,
+        .muted {
+            color: var(--muted) !important;
+        }
+
         .seed-meta {
-            color: var(--muted);
             font-weight: 700;
             font-size: 0.9rem;
             margin-bottom: 0.8rem;
@@ -317,15 +366,11 @@ def inject_design():
 
         .badge {
             background: #E8E6DA;
-            color: var(--forest);
+            color: var(--forest) !important;
             padding: 0.35rem 0.6rem;
             border-radius: 999px;
             font-size: 0.78rem;
             font-weight: 800;
-        }
-
-        .muted {
-            color: var(--muted);
         }
 
         .avatar {
@@ -336,7 +381,7 @@ def inject_design():
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: white !important;
             font-weight: 900;
             font-size: 1.35rem;
             margin-bottom: 0.8rem;
@@ -361,21 +406,58 @@ def inject_design():
                 padding-left: 1rem;
                 padding-right: 1rem;
                 padding-top: 1rem;
+                max-width: 100%;
+            }
+
+            section[data-testid="stSidebar"] {
+                background: #F7F4EE !important;
+            }
+
+            section[data-testid="stSidebar"] * {
+                color: var(--text) !important;
+                opacity: 1 !important;
+            }
+
+            section[data-testid="stSidebar"] input {
+                background: #FFFFFF !important;
+                color: var(--text) !important;
+                font-size: 1rem !important;
+            }
+
+            section[data-testid="stSidebar"] .stButton > button {
+                background: rgba(255,255,255,0.75) !important;
+                color: var(--text) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 18px !important;
+                min-height: 3.15rem;
+                font-size: 1rem;
+            }
+
+            section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+                background: var(--forest) !important;
+                color: white !important;
             }
 
             .hero {
                 padding: 1.6rem;
-                min-height: auto;
+                min-height: 360px;
                 border-radius: 28px;
+                margin-top: 0.35rem;
             }
 
             .hero h1 {
                 font-size: 3rem !important;
+                line-height: 1.05 !important;
             }
 
             .hero p {
                 font-size: 1rem;
                 line-height: 1.55;
+                color: #FFFFFF !important;
+            }
+
+            .hero-kicker {
+                font-size: 0.8rem;
             }
 
             .page-header {
@@ -384,18 +466,25 @@ def inject_design():
             }
 
             .page-header h1 {
-                font-size: 2.6rem !important;
+                font-size: 2.45rem !important;
             }
 
-            .float-one,
-            .float-two {
-                display: none;
+            div[data-testid="stMetric"] {
+                background: rgba(255,255,255,0.92) !important;
+                color: var(--text) !important;
+                min-height: 106px;
+            }
+
+            div[data-testid="stMetric"] * {
+                color: var(--text) !important;
+                opacity: 1 !important;
             }
 
             .stRadio div[role="radiogroup"] {
-                flex-wrap: nowrap;
-                justify-content: flex-start;
-                overflow-x: auto;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.55rem;
+                overflow-x: visible;
                 padding-bottom: 0.5rem;
                 margin-top: 0.6rem;
                 margin-bottom: 1.1rem;
@@ -403,13 +492,14 @@ def inject_design():
 
             .stRadio div[role="radiogroup"] label {
                 min-width: max-content;
+                background: rgba(255,255,255,0.9) !important;
+                color: var(--text) !important;
             }
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
 
 inject_design()
 
@@ -524,7 +614,7 @@ with st.sidebar:
         user = get_current_user()
         st.success(f"Logged in as {user.email}")
 
-        if st.button("Log out", use_container_width=True):
+        if st.button("Log out", use_container_width=True, type="primary"):
             sign_out()
             st.rerun()
 
@@ -534,11 +624,11 @@ with st.sidebar:
             ["Login", "Sign up"],
         )
 
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
+        email = st.text_input("Email", placeholder="Enter your email")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
 
         if auth_tab == "Login":
-            if st.button("Login", use_container_width=True):
+            if st.button("Login", use_container_width=True, type="primary"):
                 try:
                     response = sign_in(email, password)
 
@@ -553,7 +643,7 @@ with st.sidebar:
                     st.caption(str(e))
 
         if auth_tab == "Sign up":
-            if st.button("Create account", use_container_width=True):
+            if st.button("Create account", use_container_width=True, type="primary"):
                 try:
                     response = sign_up(email, password)
 
@@ -584,8 +674,23 @@ with st.sidebar:
 
     for page_name in PAGES:
         label = f"{page_icons.get(page_name, '•')} {page_name}"
-        if st.button(label, key=f"sidebar_nav_{page_name}", use_container_width=True):
+        button_type = "primary" if page_name == st.session_state.current_page else "secondary"
+        if st.button(label, key=f"sidebar_nav_{page_name}", use_container_width=True, type=button_type):
             go_to_page(page_name)
+
+    st.markdown(
+        """
+        <div class="sidebar-brand-card">
+            <div class="sidebar-brand-icon">🌱</div>
+            <div>
+                <strong>Sprouty</strong><br>
+                <span>Share seeds, grow together.</span><br>
+                <span>SeedShare Berlin</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # -----------------------------
