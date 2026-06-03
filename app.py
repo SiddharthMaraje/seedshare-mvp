@@ -726,7 +726,9 @@ if st.session_state.current_page == "Home":
         """
 <div class="hero">
     <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
-    <h1>Share seeds,<br><em>grow together.</em></h1>
+    <h1 style="color:white !important;">
+    Share seeds,<br><em style="color:white !important;">grow together.</em>
+    </h1>
     <p>
         Discover, exchange, and grow seeds with fellow Berlin urban gardeners.<br>
         Every balcony can become a garden.
