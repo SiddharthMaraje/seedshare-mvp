@@ -1,5 +1,3 @@
-# app.py
-
 import streamlit as st
 from streamlit_folium import st_folium
 
@@ -38,75 +36,455 @@ from match_utils import find_profile_matches
 
 
 st.set_page_config(
-    page_title="SeedShare Berlin",
+    page_title="Sprouty | Share seeds, grow together",
     page_icon="🌱",
     layout="wide",
 )
+
 
 init_auth_state()
 
 
 # -----------------------------
-# Header
+# Global Design CSS
 # -----------------------------
 
-st.title("🌱 SeedShare Berlin")
-st.caption("Community seed sharing and AI gardening help for Berlin urban gardeners")
+def inject_design():
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --forest: #254D17;
+            --leaf: #6FAE4F;
+            --sage: #E8E6DA;
+            --cream: #F8F6F1;
+            --cream2: #F1EEE5;
+            --text: #2A2A2A;
+            --muted: #6B6B5F;
+            --border: rgba(37, 77, 23, 0.16);
+            --shadow: 0 16px 40px rgba(37, 77, 23, 0.10);
+        }
+
+        html, body, [class*="css"] {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stApp {
+            background: var(--cream);
+            color: var(--text);
+        }
+
+        .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Cormorant Garamond', serif;
+            color: var(--forest);
+            letter-spacing: -0.03em;
+        }
+
+        h1 {
+            font-size: 3.2rem !important;
+        }
+
+        h2 {
+            font-size: 2.25rem !important;
+        }
+
+        section[data-testid="stSidebar"] {
+            background: var(--cream2);
+            border-right: 1px solid var(--border);
+        }
+
+        div.stButton > button,
+        div.stFormSubmitButton > button {
+            background: var(--forest);
+            color: white;
+            border: 0;
+            border-radius: 999px;
+            padding: 0.7rem 1.25rem;
+            font-weight: 800;
+            box-shadow: 0 10px 24px rgba(37, 77, 23, 0.18);
+        }
+
+        div.stButton > button:hover,
+        div.stFormSubmitButton > button:hover {
+            background: #1E3E13;
+            color: white;
+            border: 0;
+        }
+
+        div[data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            background:
+                radial-gradient(circle at 78% 24%, rgba(111, 174, 79, 0.38), transparent 28%),
+                linear-gradient(135deg, #254D17 0%, #17350F 100%);
+            border-radius: 34px;
+            padding: 3rem;
+            min-height: 470px;
+            color: white;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            color: white !important;
+            font-size: 4.8rem !important;
+            line-height: 0.95 !important;
+            margin-bottom: 1rem;
+            max-width: 680px;
+        }
+
+        .hero h1 em {
+            color: #DCEBD0;
+            font-style: italic;
+        }
+
+        .hero p {
+            color: #F1F6EA;
+            font-size: 1.15rem;
+            line-height: 1.65;
+            max-width: 560px;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            background: rgba(255,255,255,0.13);
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 999px;
+            padding: 0.45rem 0.85rem;
+            font-weight: 800;
+            color: #F8F6F1;
+            margin-bottom: 1.1rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-top: 1.4rem;
+        }
+
+        .cta-primary,
+        .cta-secondary {
+            display: inline-flex;
+            text-decoration: none !important;
+            border-radius: 999px;
+            padding: 0.85rem 1.2rem;
+            font-weight: 900;
+        }
+
+        .cta-primary {
+            background: #F8F6F1;
+            color: var(--forest) !important;
+        }
+
+        .cta-secondary {
+            background: transparent;
+            color: #F8F6F1 !important;
+            border: 1px solid rgba(255,255,255,0.45);
+        }
+
+        .floating-card {
+            background: rgba(248, 246, 241, 0.96);
+            border-radius: 26px;
+            padding: 1.15rem;
+            border: 1px solid rgba(255,255,255,0.45);
+            box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+            color: var(--text);
+            position: absolute;
+            width: 260px;
+        }
+
+        .floating-card h3 {
+            margin: 0.2rem 0;
+            font-size: 1.45rem !important;
+        }
+
+        .float-one {
+            right: 3rem;
+            top: 4rem;
+            transform: rotate(2deg);
+        }
+
+        .float-two {
+            right: 9rem;
+            bottom: 3rem;
+            transform: rotate(-3deg);
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #E8E6DA 0%, #F8F6F1 100%);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 2rem;
+            margin-bottom: 1.4rem;
+            box-shadow: var(--shadow);
+        }
+
+        .page-header p {
+            color: var(--muted);
+            font-size: 1.05rem;
+            max-width: 720px;
+        }
+
+        .section-card,
+        .seed-card,
+        .profile-card {
+            background: rgba(255,255,255,0.80);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 1.25rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+
+        .seed-card h3,
+        .profile-card h3 {
+            margin-bottom: 0.3rem;
+            font-size: 1.55rem !important;
+        }
+
+        .mini-title {
+            font-weight: 900;
+            color: var(--forest);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.76rem;
+        }
+
+        .seed-meta {
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.75rem;
+        }
+
+        .badge {
+            background: #E8E6DA;
+            color: var(--forest);
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .avatar {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6FAE4F, #254D17);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 900;
+            font-size: 1.35rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            background: rgba(255,255,255,0.72);
+            border: 1px dashed rgba(37,77,23,0.28);
+            border-radius: 30px;
+            margin-top: 1rem;
+        }
+
+        .big-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                padding: 2rem;
+                min-height: 620px;
+            }
+
+            .hero h1 {
+                font-size: 3.3rem !important;
+            }
+
+            .float-one {
+                right: 1.2rem;
+                top: auto;
+                bottom: 13rem;
+                width: 230px;
+            }
+
+            .float-two {
+                right: 4rem;
+                bottom: 2rem;
+                width: 230px;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+inject_design()
+
+
+# -----------------------------
+# Helper UI Components
+# -----------------------------
+
+def page_header(title, subtitle):
+    st.markdown(
+        f"""
+        <div class="page-header">
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def listing_card(listing):
+    status = listing.get("status", "Available")
+
+    status_badge = "🌱 Available" if status == "Available" else "✓ Exchanged"
+
+    st.markdown(
+        f"""
+        <div class="seed-card">
+            <div class="mini-title">{listing.get('category', 'Seed')}</div>
+            <h3>🌿 {listing.get('seed_name', 'Unnamed seed or seedling')}</h3>
+            <div class="seed-meta">
+                {listing.get('berlin_district', 'Berlin')} · {status_badge}
+            </div>
+            <p>{listing.get('description', '')}</p>
+            <div class="badge-row">
+                <span class="badge">☀ {listing.get('best_balcony_condition', 'Not specified')}</span>
+                <span class="badge">🌱 {listing.get('suitable_for', 'Not specified')}</span>
+            </div>
+            <br>
+            <p><b>Quantity:</b> {listing.get('quantity', 'Not specified')}</p>
+            <p><b>Shared by:</b> {listing.get('owner_name', 'Not specified')}</p>
+            <p><b>Contact:</b> {listing.get('contact', 'Not specified')}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def profile_card(profile, rating_summary=None):
+    display_name = profile.get("display_name") or profile.get("username", "Unnamed user")
+    initials = "".join([part[0] for part in display_name.split()[:2]]).upper() or "🌱"
+
+    if rating_summary and rating_summary["count"] > 0:
+        rating_text = f"⭐ {rating_summary['average']}/5 from {rating_summary['count']} rating(s)"
+    else:
+        rating_text = "No ratings yet"
+
+    st.markdown(
+        f"""
+        <div class="profile-card">
+            <div class="avatar">{initials}</div>
+            <h3>{display_name}</h3>
+            <div class="seed-meta">
+                {profile.get('gardening_level', 'Gardener')} · {profile.get('neighbourhood', 'Berlin')}
+            </div>
+            <p>{profile.get('short_bio', '')}</p>
+            <div class="badge-row">
+                <span class="badge">{rating_text}</span>
+                <span class="badge">🌱 Seed sharer</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # -----------------------------
 # Sidebar authentication
 # -----------------------------
 
-st.sidebar.header("Account")
+with st.sidebar:
+    st.markdown("## 🌱 Sprouty")
+    st.caption("SeedShare Berlin")
+    st.markdown("**Share seeds, grow together.**")
+    st.divider()
 
-if is_logged_in():
-    user = get_current_user()
-    st.sidebar.success(f"Logged in as {user.email}")
+    st.header("Account")
 
-    if st.sidebar.button("Log out"):
-        sign_out()
-        st.rerun()
+    if is_logged_in():
+        user = get_current_user()
+        st.success(f"Logged in as {user.email}")
 
-else:
-    auth_tab = st.sidebar.radio(
-        "Choose action",
-        ["Login", "Sign up"],
-    )
+        if st.button("Log out"):
+            sign_out()
+            st.rerun()
 
-    email = st.sidebar.text_input("Email")
-    password = st.sidebar.text_input("Password", type="password")
+    else:
+        auth_tab = st.radio(
+            "Choose action",
+            ["Login", "Sign up"],
+        )
 
-    if auth_tab == "Login":
-        if st.sidebar.button("Login"):
-            try:
-                response = sign_in(email, password)
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
 
-                if response.user:
-                    st.sidebar.success("Login successful.")
-                    st.rerun()
-                else:
-                    st.sidebar.error("Login failed.")
+        if auth_tab == "Login":
+            if st.button("Login"):
+                try:
+                    response = sign_in(email, password)
 
-            except Exception as e:
-                st.sidebar.error("Login failed.")
-                st.sidebar.caption(str(e))
+                    if response.user:
+                        st.success("Login successful.")
+                        st.rerun()
+                    else:
+                        st.error("Login failed.")
 
-    if auth_tab == "Sign up":
-        if st.sidebar.button("Create account"):
-            try:
-                response = sign_up(email, password)
+                except Exception as e:
+                    st.error("Login failed.")
+                    st.caption(str(e))
 
-                if response.user:
-                    st.sidebar.success(
-                        "Account created. Please log in. If email confirmation is enabled, check your inbox."
-                    )
-                else:
-                    st.sidebar.error("Sign-up failed.")
+        if auth_tab == "Sign up":
+            if st.button("Create account"):
+                try:
+                    response = sign_up(email, password)
 
-            except Exception as e:
-                st.sidebar.error("Sign-up failed.")
-                st.sidebar.caption(str(e))
+                    if response.user:
+                        st.success(
+                            "Account created. Please log in. If email confirmation is enabled, check your inbox."
+                        )
+                    else:
+                        st.error("Sign-up failed.")
+
+                except Exception as e:
+                    st.error("Sign-up failed.")
+                    st.caption(str(e))
 
 
 # -----------------------------
@@ -123,12 +501,12 @@ if "selected_profile_id" not in st.session_state:
 
 home_tab, browse_tab, map_tab, add_tab, ai_tab, community_tab, profile_tab, my_listings_tab = st.tabs(
     [
-        "SeedShare Home",
+        "Home",
         "Browse Seeds",
         "Seed Map",
         "Add Listing",
-        "AI Gardening Assistant",
-        "Community Profiles",
+        "AI Assistant",
+        "Community",
         "My Profile",
         "My Listings",
     ]
@@ -136,15 +514,53 @@ home_tab, browse_tab, map_tab, add_tab, ai_tab, community_tab, profile_tab, my_l
 
 
 # -----------------------------
-# SeedShare Home
+# Home
 # -----------------------------
 
 with home_tab:
-    st.subheader("Welcome to SeedShare Berlin")
-
     listings = get_all_listings()
+    profiles = get_all_profiles()
+
     available_count = len(
         [listing for listing in listings if listing.get("status", "Available") == "Available"]
+    )
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
+            <h1>Share seeds,<br><em>grow together.</em></h1>
+            <p>
+                Discover, exchange, and grow seeds with fellow Berlin urban gardeners.
+                Every balcony can become a garden.
+            </p>
+            <div class="hero-buttons">
+                <a class="cta-primary" href="#browse-seeds">🌿 Browse Seeds</a>
+                <a class="cta-secondary" href="#share-your-seeds">＋ Add Listing</a>
+            </div>
+
+            <div class="floating-card float-one">
+                <div class="mini-title">Available now</div>
+                <h3>Basil Seedlings</h3>
+                <div class="seed-meta">Herb · Prenzlauer Berg</div>
+                <div class="badge-row">
+                    <span class="badge">☀ Full sun</span>
+                    <span class="badge">🌱 Beginner</span>
+                </div>
+            </div>
+
+            <div class="floating-card float-two">
+                <div class="mini-title">Community pick</div>
+                <h3>Cherry Tomatoes</h3>
+                <div class="seed-meta">Vegetable · Mitte</div>
+                <div class="badge-row">
+                    <span class="badge">🌤 Balcony-friendly</span>
+                    <span class="badge">⭐ Easy</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     col1, col2, col3 = st.columns(3)
@@ -156,27 +572,44 @@ with home_tab:
         st.metric("Available Seeds", available_count)
 
     with col3:
-        st.metric("City Focus", "Berlin")
+        st.metric("Active Gardeners", len(profiles))
 
-    st.markdown("---")
+    st.markdown("## How Sprouty works")
 
-    st.markdown(
-        """
-        SeedShare Berlin is a community MVP for people who want to share, discover,
-        and grow seeds in Berlin.
+    c1, c2, c3 = st.columns(3)
 
-        With this app, users can:
+    with c1:
+        st.markdown(
+            """
+            <div class="section-card">
+                <h3>1. Find seeds</h3>
+                <p class="muted">Browse and filter seed listings shared by local Berlin gardeners.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        - browse and filter seed listings
-        - view listings on a Berlin district seed map
-        - create seed or seedling listings after login
-        - mark seeds as exchanged
-        - create richer community profiles
-        - browse and rate community profiles
-        - find profile matches based on what users are looking for
-        - use an AI gardening assistant
-        """
-    )
+    with c2:
+        st.markdown(
+            """
+            <div class="section-card">
+                <h3>2. Connect locally</h3>
+                <p class="muted">Use profiles, ratings, and contact details to arrange a friendly exchange.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with c3:
+        st.markdown(
+            """
+            <div class="section-card">
+                <h3>3. Grow together</h3>
+                <p class="muted">Share seeds, mark exchanges, and get AI gardening advice for your balcony.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 # -----------------------------
@@ -184,15 +617,28 @@ with home_tab:
 # -----------------------------
 
 with browse_tab:
-    st.subheader("Available Seed Listings")
+    st.markdown('<div id="browse-seeds"></div>', unsafe_allow_html=True)
+    page_header(
+        "Browse Seeds",
+        "Find seeds and seedlings shared by gardeners across Berlin.",
+    )
 
     listings = get_all_listings()
 
     if not listings:
-        st.info("No seed listings yet.")
+        st.markdown(
+            """
+            <div class="empty-state">
+                <div class="big-emoji">🌱</div>
+                <h2>No seed listings yet</h2>
+                <p class="muted">Be the first person to share seeds with the Sprouty community.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     else:
-        st.markdown("### Search and Filter")
+        st.markdown("### Search and filter")
 
         col1, col2, col3 = st.columns(3)
 
@@ -321,32 +767,17 @@ with browse_tab:
                 if listing.get("status", "Available") == "Exchanged"
             ]
 
-        st.markdown("---")
         st.write(f"Showing **{len(filtered_listings)}** of **{len(listings)}** listings.")
 
         if not filtered_listings:
             st.warning("No listings match your search filters.")
 
         else:
-            for listing in filtered_listings:
-                with st.container(border=True):
-                    st.markdown(f"### {listing.get('seed_name', 'Unnamed seed or seedling')}")
+            cols = st.columns(3)
 
-                    status = listing.get("status", "Available")
-
-                    if status == "Exchanged":
-                        st.warning("Status: Exchanged")
-                    else:
-                        st.success("Status: Available")
-
-                    st.write(f"**Category:** {listing.get('category', 'Not specified')}")
-                    st.write(f"**Best balcony condition:** {listing.get('best_balcony_condition', 'Not specified')}")
-                    st.write(f"**Suitable for:** {listing.get('suitable_for', 'Not specified')}")
-                    st.write(f"**Berlin district:** {listing.get('berlin_district', 'Not specified')}")
-                    st.write(f"**Quantity:** {listing.get('quantity', 'Not specified')}")
-                    st.write(f"**Shared by:** {listing.get('owner_name', 'Not specified')}")
-                    st.write(f"**Contact:** {listing.get('contact', 'Not specified')}")
-                    st.write(f"**Growing tip:** {listing.get('description', '')}")
+            for index, listing in enumerate(filtered_listings):
+                with cols[index % 3]:
+                    listing_card(listing)
 
                     owner_id = listing.get("user_id")
 
@@ -354,13 +785,13 @@ with browse_tab:
                         owner_rating = get_rating_summary(owner_id)
 
                         if owner_rating["count"] > 0:
-                            st.write(
-                                f"**Owner rating:** ⭐ {owner_rating['average']}/5 from {owner_rating['count']} rating(s)"
+                            st.caption(
+                                f"Owner rating: ⭐ {owner_rating['average']}/5 from {owner_rating['count']} rating(s)"
                             )
 
                         if st.button("View owner profile", key=f"browse_owner_{listing.get('id')}"):
                             st.session_state.selected_profile_id = owner_id
-                            st.info("Open the Community Profiles tab to view the selected profile.")
+                            st.info("Open the Community tab to view the selected profile.")
 
 
 # -----------------------------
@@ -368,10 +799,9 @@ with browse_tab:
 # -----------------------------
 
 with map_tab:
-    st.subheader("Seed Map of Berlin")
-    st.write(
-        "Explore available seed and seedling listings by Berlin district. "
-        "Markers use approximate district locations, not exact addresses."
+    page_header(
+        "Seed Map",
+        "Discover available seeds near you across Berlin. Markers use approximate district locations, not exact addresses.",
     )
 
     listings = get_all_listings()
@@ -380,6 +810,19 @@ with map_tab:
         listing for listing in listings
         if listing.get("status", "Available") == "Available"
     ]
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.metric("Available Listings", len(map_listings))
+
+    with c2:
+        districts = len(set([listing.get("berlin_district", "Other") for listing in map_listings]))
+        st.metric("Berlin Districts", districts)
+
+    with c3:
+        owners = len(set([listing.get("owner_name", "Unknown") for listing in map_listings]))
+        st.metric("Seed Sharers", owners)
 
     if not map_listings:
         st.info("No available seed listings for the map yet.")
@@ -403,7 +846,11 @@ with map_tab:
 # -----------------------------
 
 with add_tab:
-    st.subheader("Add a Seed or Seedling Listing")
+    st.markdown('<div id="share-your-seeds"></div>', unsafe_allow_html=True)
+    page_header(
+        "Share Your Seeds",
+        "Help another Berlin gardener start growing.",
+    )
 
     if not is_logged_in():
         st.warning("Please log in to add a seed listing.")
@@ -412,6 +859,8 @@ with add_tab:
         user = get_current_user()
 
         with st.form("add_listing_form"):
+            st.markdown("### About the seed")
+
             seed_name = st.text_input(
                 "Seed or seedling name",
                 placeholder="e.g. Basil seedlings, tomato seeds, marigold seeds",
@@ -420,17 +869,6 @@ with add_tab:
             col1, col2 = st.columns(2)
 
             with col1:
-                best_balcony_condition = st.selectbox(
-                    "Best balcony condition",
-                    [
-                        "Full sun",
-                        "Partial sun",
-                        "Mostly shade",
-                        "Indoor / windowsill",
-                        "Flexible / easy-going",
-                    ],
-                )
-
                 category = st.selectbox(
                     "Category",
                     [
@@ -443,16 +881,9 @@ with add_tab:
                     ],
                 )
 
-                suitable_for = st.selectbox(
-                    "Suitable for",
-                    [
-                        "Complete beginners",
-                        "Balcony gardeners",
-                        "Families / children",
-                        "Pollinators / bees",
-                        "Experienced gardeners",
-                        "Small spaces",
-                    ],
+                quantity = st.text_input(
+                    "Quantity",
+                    placeholder="e.g. 10 seeds, 3 seedlings, one small packet",
                 )
 
                 berlin_district = st.selectbox(
@@ -475,27 +906,45 @@ with add_tab:
                 )
 
             with col2:
+                best_balcony_condition = st.selectbox(
+                    "Best balcony condition",
+                    [
+                        "Full sun",
+                        "Partial sun",
+                        "Mostly shade",
+                        "Indoor / windowsill",
+                        "Flexible / easy-going",
+                    ],
+                )
+
+                suitable_for = st.selectbox(
+                    "Suitable for",
+                    [
+                        "Complete beginners",
+                        "Balcony gardeners",
+                        "Families / children",
+                        "Pollinators / bees",
+                        "Experienced gardeners",
+                        "Small spaces",
+                    ],
+                )
+
                 owner_name = st.text_input(
                     "Your name or nickname",
                     placeholder="e.g. Anna, GreenBalcony92",
                 )
 
-                quantity = st.text_input(
-                    "Quantity",
-                    placeholder="e.g. 10 seeds, 3 seedlings, one small packet",
-                )
-
-                contact = st.text_input(
-                    "Contact",
-                    placeholder="e.g. email, Telegram, phone, or preferred contact method",
-                )
+            contact = st.text_input(
+                "Contact",
+                placeholder="e.g. email, Telegram, phone, or preferred contact method",
+            )
 
             description = st.text_area(
                 "Short description / growing tip",
                 placeholder="e.g. Easy basil seedlings, good for sunny balconies. Water regularly and harvest often.",
             )
 
-            submitted_listing = st.form_submit_button("Create listing")
+            submitted_listing = st.form_submit_button("Publish Listing 🌱")
 
             if submitted_listing:
                 if not seed_name:
@@ -532,72 +981,75 @@ with add_tab:
 # -----------------------------
 
 with ai_tab:
-    st.subheader("AI Gardening Assistant")
-    st.write(
-        "Get personalized growing advice based on your balcony, season, sunlight, and gardening experience."
+    page_header(
+        "AI Gardening Assistant",
+        "Get personalized growing advice based on your balcony, season, sunlight, and gardening experience.",
     )
 
-    with st.form("ai_gardening_form"):
-        col1, col2 = st.columns(2)
+    col_left, col_right = st.columns([1.15, 0.85])
 
-        with col1:
+    with col_left:
+        with st.form("ai_gardening_form"):
             ai_location = st.text_input(
                 "Location",
                 value="Berlin",
                 placeholder="e.g. Berlin, Neukölln, Prenzlauer Berg",
             )
 
-            balcony_size = st.selectbox(
-                "Balcony size",
-                [
-                    "Small windowsill",
-                    "Small balcony",
-                    "Medium balcony",
-                    "Large balcony",
-                    "Shared courtyard",
-                    "No balcony / indoor only",
-                ],
-            )
+            col1, col2 = st.columns(2)
 
-            month_or_season = st.selectbox(
-                "Month or season",
-                [
-                    "January / Winter",
-                    "February / Winter",
-                    "March / Early spring",
-                    "April / Spring",
-                    "May / Late spring",
-                    "June / Early summer",
-                    "July / Summer",
-                    "August / Late summer",
-                    "September / Early autumn",
-                    "October / Autumn",
-                    "November / Late autumn",
-                    "December / Winter",
-                ],
-                index=4,
-            )
+            with col1:
+                balcony_size = st.selectbox(
+                    "Balcony size",
+                    [
+                        "Small windowsill",
+                        "Small balcony",
+                        "Medium balcony",
+                        "Large balcony",
+                        "Shared courtyard",
+                        "No balcony / indoor only",
+                    ],
+                )
 
-        with col2:
-            gardening_experience = st.selectbox(
-                "Gardening experience",
-                [
-                    "Complete beginner",
-                    "Beginner",
-                    "Some experience",
-                    "Experienced gardener",
-                ],
-            )
+                month_or_season = st.selectbox(
+                    "Month or season",
+                    [
+                        "January / Winter",
+                        "February / Winter",
+                        "March / Early spring",
+                        "April / Spring",
+                        "May / Late spring",
+                        "June / Early summer",
+                        "July / Summer",
+                        "August / Late summer",
+                        "September / Early autumn",
+                        "October / Autumn",
+                        "November / Late autumn",
+                        "December / Winter",
+                    ],
+                    index=4,
+                )
 
-            balcony_sunlight = st.selectbox(
-                "Balcony sunlight",
-                [
-                    "Full sun, 6+ hours",
-                    "Partial sun, 3–6 hours",
-                    "Mostly shade, less than 3 hours",
-                    "Not sure",
-                ],
-            )
+            with col2:
+                gardening_experience = st.selectbox(
+                    "Gardening experience",
+                    [
+                        "Complete beginner",
+                        "Beginner",
+                        "Some experience",
+                        "Experienced gardener",
+                    ],
+                )
+
+                balcony_sunlight = st.selectbox(
+                    "Balcony sunlight",
+                    [
+                        "Full sun, 6+ hours",
+                        "Partial sun, 3–6 hours",
+                        "Mostly shade, less than 3 hours",
+                        "Not sure",
+                    ],
+                )
 
             main_interest = st.selectbox(
                 "Main interest / seed type",
@@ -614,7 +1066,22 @@ with ai_tab:
                 ],
             )
 
-        submitted_ai = st.form_submit_button("Generate AI growing advice")
+            submitted_ai = st.form_submit_button("Generate AI growing advice 🌱")
+
+    with col_right:
+        st.markdown(
+            """
+            <div class="section-card">
+                <div class="big-emoji">🪴</div>
+                <h2>Your balcony plant helper</h2>
+                <p class="muted">
+                    Sprouty can suggest beginner-friendly seeds, growing conditions,
+                    and practical balcony tips for Berlin.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     if submitted_ai:
         with st.spinner("Generating personalized gardening advice..."):
@@ -639,9 +1106,14 @@ with ai_tab:
             st.write(f"**Main interest:** {main_interest}")
 
         st.markdown("### Personalized Growing Advice")
-        st.write(advice)
-
-        st.markdown("---")
+        st.markdown(
+            f"""
+            <div class="section-card">
+                {advice}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         with st.expander("View AI Prompt Used"):
             st.code(prompt, language="text")
@@ -652,8 +1124,10 @@ with ai_tab:
 # -----------------------------
 
 with community_tab:
-    st.subheader("Community Profiles")
-    st.write("Browse SeedShare Berlin users, view public profiles, and rate community interactions.")
+    page_header(
+        "Community Gardeners",
+        "Browse Sprouty users, view public profiles, and rate community interactions.",
+    )
 
     if not is_logged_in():
         st.warning("Please log in to view Community Profiles.")
@@ -688,37 +1162,18 @@ with community_tab:
 
             st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
 
-            for profile in filtered_profiles:
+            cols = st.columns(3)
+
+            for index, profile in enumerate(filtered_profiles):
                 profile_id = profile.get("id")
-                display_name = profile.get("display_name") or profile.get("username", "Unnamed user")
-                username = profile.get("username", "Not specified")
-                neighbourhood = profile.get("neighbourhood", "Not specified")
-                gardening_level = profile.get("gardening_level", "Not specified")
-
                 rating_summary = get_rating_summary(profile_id)
-                average_rating = rating_summary["average"]
-                rating_count = rating_summary["count"]
 
-                with st.container(border=True):
-                    col1, col2 = st.columns([3, 1])
+                with cols[index % 3]:
+                    profile_card(profile, rating_summary)
 
-                    with col1:
-                        st.markdown(f"### {display_name}")
-                        st.write(f"**Username:** {username}")
-                        st.write(f"**Neighbourhood:** {neighbourhood}")
-                        st.write(f"**Gardening level:** {gardening_level}")
-
-                        if rating_count == 0:
-                            st.write("**Rating:** No ratings yet")
-                        else:
-                            st.write(
-                                f"**Rating:** ⭐ {average_rating}/5 from {rating_count} rating(s)"
-                            )
-
-                    with col2:
-                        if st.button("View profile", key=f"view_profile_{profile_id}"):
-                            st.session_state.selected_profile_id = profile_id
-                            st.rerun()
+                    if st.button("View profile", key=f"view_profile_{profile_id}"):
+                        st.session_state.selected_profile_id = profile_id
+                        st.rerun()
 
             selected_profile = None
 
@@ -735,14 +1190,21 @@ with community_tab:
                 selected_id = selected_profile.get("id")
                 selected_name = selected_profile.get("display_name") or selected_profile.get("username", "Unnamed user")
 
-                st.markdown(f"### {selected_name}")
-                st.write(f"**Username:** {selected_profile.get('username', 'Not specified')}")
-                st.write(f"**Neighbourhood:** {selected_profile.get('neighbourhood', 'Not specified')}")
-                st.write(f"**City:** {selected_profile.get('location', 'Not specified')}")
-                st.write(f"**Gardening level:** {selected_profile.get('gardening_level', 'Not specified')}")
-                st.write(f"**Bio:** {selected_profile.get('short_bio', '')}")
-                st.write(f"**Looking for:** {selected_profile.get('looking_for', 'Not specified')}")
-                st.write(f"**Offering:** {selected_profile.get('offering', 'Not specified')}")
+                st.markdown(
+                    f"""
+                    <div class="section-card">
+                        <h2>{selected_name}</h2>
+                        <p><b>Username:</b> {selected_profile.get('username', 'Not specified')}</p>
+                        <p><b>Neighbourhood:</b> {selected_profile.get('neighbourhood', 'Not specified')}</p>
+                        <p><b>City:</b> {selected_profile.get('location', 'Not specified')}</p>
+                        <p><b>Gardening level:</b> {selected_profile.get('gardening_level', 'Not specified')}</p>
+                        <p><b>Bio:</b> {selected_profile.get('short_bio', '')}</p>
+                        <p><b>Looking for:</b> {selected_profile.get('looking_for', 'Not specified')}</p>
+                        <p><b>Offering:</b> {selected_profile.get('offering', 'Not specified')}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
                 selected_user_listings = [
                     listing for listing in get_all_listings()
@@ -753,10 +1215,7 @@ with community_tab:
                 if selected_user_listings:
                     st.markdown("### Available Seed Listings")
                     for listing in selected_user_listings:
-                        st.write(
-                            f"- **{listing.get('seed_name', 'Unnamed seed')}** "
-                            f"({listing.get('category', 'Not specified')})"
-                        )
+                        listing_card(listing)
                 else:
                     st.info("This user has no available listings right now.")
 
@@ -814,7 +1273,10 @@ with community_tab:
 # -----------------------------
 
 with profile_tab:
-    st.subheader("My Profile")
+    page_header(
+        "My Profile",
+        "Manage your gardener profile, seed matching preferences, and community identity.",
+    )
 
     if not is_logged_in():
         st.warning("Please log in to create or edit your profile.")
@@ -831,6 +1293,24 @@ with profile_tab:
         default_bio = profile.get("short_bio", "") if profile else ""
         default_looking_for = profile.get("looking_for", "") if profile else ""
         default_offering = profile.get("offering", "") if profile else ""
+
+        profile_name = default_display_name or default_username or "Sprouty Gardener"
+        initials = "".join([part[0] for part in profile_name.split()[:2]]).upper() or "🌱"
+
+        st.markdown(
+            f"""
+            <div class="section-card">
+                <div class="avatar">{initials}</div>
+                <h2>{profile_name}</h2>
+                <p class="muted">{default_level} · {default_neighbourhood or default_location}</p>
+                <div class="badge-row">
+                    <span class="badge">🌱 Seed sharer</span>
+                    <span class="badge">🌿 Berlin gardener</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         with st.form("profile_form"):
             st.markdown("### Registration / Public Profile")
@@ -969,7 +1449,7 @@ with profile_tab:
 
                         if st.button("View full profile", key=f"match_profile_{matched_profile.get('id')}"):
                             st.session_state.selected_profile_id = matched_profile.get("id")
-                            st.info("Open the Community Profiles tab to view the selected profile.")
+                            st.info("Open the Community tab to view the selected profile.")
 
 
 # -----------------------------
@@ -977,7 +1457,10 @@ with profile_tab:
 # -----------------------------
 
 with my_listings_tab:
-    st.subheader("My Listings")
+    page_header(
+        "My Listings",
+        "Manage the seeds and seedlings you have shared with the community.",
+    )
 
     if not is_logged_in():
         st.warning("Please log in to view your listings.")
@@ -987,23 +1470,27 @@ with my_listings_tab:
         my_listings = get_my_listings(user.id)
 
         if not my_listings:
-            st.info("You have not created any listings yet.")
+            st.markdown(
+                """
+                <div class="empty-state">
+                    <div class="big-emoji">🌱</div>
+                    <h2>You haven't shared any seeds yet</h2>
+                    <p class="muted">Help another Berlin gardener start growing by creating your first listing.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         else:
             for listing in my_listings:
-                with st.container(border=True):
-                    st.markdown(f"### {listing.get('seed_name', 'Unnamed seed or seedling')}")
-                    st.write(f"**Category:** {listing.get('category', 'Not specified')}")
-                    st.write(f"**Best balcony condition:** {listing.get('best_balcony_condition', 'Not specified')}")
-                    st.write(f"**Suitable for:** {listing.get('suitable_for', 'Not specified')}")
-                    st.write(f"**Berlin district:** {listing.get('berlin_district', 'Not specified')}")
-                    st.write(f"**Quantity:** {listing.get('quantity', 'Not specified')}")
-                    st.write(f"**Contact:** {listing.get('contact', 'Not specified')}")
-                    st.write(f"**Growing tip:** {listing.get('description', '')}")
+                listing_card(listing)
 
-                    current_status = listing.get("status", "Available")
-                    st.write(f"**Status:** {current_status}")
+                current_status = listing.get("status", "Available")
+                st.write(f"**Current status:** {current_status}")
 
+                col1, col2 = st.columns(2)
+
+                with col1:
                     if current_status == "Available":
                         if st.button("Mark as exchanged", key=f"exchange_{listing.get('id')}"):
                             try:
@@ -1013,7 +1500,6 @@ with my_listings_tab:
                             except Exception as e:
                                 st.error("Could not update listing status.")
                                 st.caption(str(e))
-
                     else:
                         if st.button("Mark as available again", key=f"available_{listing.get('id')}"):
                             try:
@@ -1024,6 +1510,7 @@ with my_listings_tab:
                                 st.error("Could not update listing status.")
                                 st.caption(str(e))
 
+                with col2:
                     if st.button(
                         "Delete listing",
                         key=f"delete_{listing.get('id')}",
