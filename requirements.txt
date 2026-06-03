@@ -1,5 +1,6 @@
 streamlit
 supabase
+groq
 google-genai
 pandas
 folium

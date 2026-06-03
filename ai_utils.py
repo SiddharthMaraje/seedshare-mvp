@@ -1,14 +1,15 @@
-# ai_utils.py
-
 import json
 import re
 import streamlit as st
-from google import genai
+from groq import Groq
 
 
-def get_gemini_client():
-    api_key = st.secrets["GEMINI_API_KEY"]
-    return genai.Client(api_key=api_key)
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+
+def get_groq_client():
+    api_key = st.secrets["GROQ_API_KEY"]
+    return Groq(api_key=api_key)
 
 
 def generate_balcony_gardening_advice(
@@ -19,11 +20,8 @@ def generate_balcony_gardening_advice(
     balcony_sunlight: str,
     main_interest: str,
 ):
-    try:
-        client = get_gemini_client()
-
-        prompt = f"""
-You are the AI Gardening Assistant for SeedShare Berlin.
+    prompt = f"""
+You are the AI Gardening Assistant for Sprouty, a seed-sharing platform for Berlin balcony gardeners.
 
 User inputs:
 - Location: {location}
@@ -42,36 +40,83 @@ Use these sections:
 4. Watering and sunlight advice
 5. Step-by-step action plan
 6. Common mistakes to avoid
-7. SeedShare tip
+7. Sprouty tip
+
+Keep the answer practical, friendly, and suitable for a Weiterbildung MVP demo.
 """
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
+    try:
+        client = get_groq_client()
+
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a friendly balcony gardening assistant for Berlin users.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.7,
+            max_tokens=900,
         )
 
+        advice = response.choices[0].message.content
+
         return {
-            "advice": response.text,
+            "advice": advice,
             "prompt": prompt,
         }
 
     except Exception as e:
         return {
             "advice": f"""
-AI recommendation could not be generated right now.
+Sprouty's AI helper is temporarily unavailable.
 
-Technical error: {e}
+You can still try these beginner-friendly Berlin balcony options:
 
-Fallback advice:
-For Berlin balconies, beginner-friendly options include basil, parsley, chives, mint, marigold, nasturtium, lettuce, radish, and cherry tomatoes.
+1. Best seed ideas for this user
+- Basil
+- Parsley
+- Chives
+- Mint
+- Marigold
+- Nasturtium
+- Lettuce
+- Radish
+- Cherry tomatoes
+
+2. Why these seeds fit
+These are common beginner-friendly plants that can grow well in containers, windowsills, or balconies.
+
+3. Growing setup
+Use pots with drainage holes, fresh potting soil, and place the plants according to their sunlight needs.
+
+4. Watering and sunlight advice
+Water when the top layer of soil feels dry. Avoid overwatering.
+
+5. Step-by-step action plan
+Choose 2 or 3 easy plants, prepare small pots, sow seeds, water gently, and monitor growth weekly.
+
+6. Common mistakes to avoid
+Avoid too much water, overcrowding seeds, and placing sun-loving plants in deep shade.
+
+7. Sprouty tip
+Check Browse Seeds to find local seeds from other Berlin gardeners.
+
+Technical note for developer:
+{e}
 """,
-            "prompt": "Prompt generation failed.",
+            "prompt": prompt,
         }
 
 
 def semantic_profile_matching(looking_for: str, candidate_profiles: list):
     """
-    Uses Gemini to semantically rank possible SeedShare profile matches.
+    Uses Groq to semantically rank possible Sprouty profile matches.
     Returns a list of dictionaries with:
     - profile_id
     - score
@@ -81,11 +126,8 @@ def semantic_profile_matching(looking_for: str, candidate_profiles: list):
     if not looking_for or not candidate_profiles:
         return []
 
-    try:
-        client = get_gemini_client()
-
-        prompt = f"""
-You are a matching assistant for SeedShare Berlin.
+    prompt = f"""
+You are a matching assistant for Sprouty, a seed-sharing platform for Berlin gardeners.
 
 The current user is looking for:
 "{looking_for}"
@@ -119,12 +161,26 @@ Rules:
 - do not add markdown
 """
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
+    try:
+        client = get_groq_client()
+
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You return only valid JSON. Do not use markdown.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.2,
+            max_tokens=800,
         )
 
-        raw_text = response.text.strip()
+        raw_text = response.choices[0].message.content.strip()
 
         json_match = re.search(r"\[.*\]", raw_text, re.DOTALL)
 
