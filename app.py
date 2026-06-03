@@ -496,6 +496,19 @@ def inject_design():
                 color: var(--text) !important;
             }
         }
+
+        .hero h1 span {
+        color: #FFFFFF !important;
+        }
+
+        .hero h1 {
+         color: #FFFFFF !important;
+        }
+
+        .hero * {
+        color: #FFFFFF !important;
+        }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -726,8 +739,9 @@ if st.session_state.current_page == "Home":
         """
 <div class="hero">
     <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
-    <h1 style="color:white !important;">
-    Share seeds,<br><em style="color:white !important;">grow together.</em>
+    <h1>
+    <span style="color:#FFFFFF !important;">Share seeds,</span><br>
+    <em style="color:#FFFFFF !important;">grow together.</em>
     </h1>
     <p>
         Discover, exchange, and grow seeds with fellow Berlin urban gardeners.<br>
