@@ -82,6 +82,17 @@ def inject_design():
             padding-bottom: 4rem;
         }
 
+        div[role="radiogroup"] {
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        div[role="radiogroup"] label {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
         h1, h2, h3 {
             font-family: 'Cormorant Garamond', serif;
             color: var(--forest);
@@ -499,25 +510,41 @@ if "selected_profile_id" not in st.session_state:
 # Tabs
 # -----------------------------
 
-home_tab, browse_tab, map_tab, add_tab, ai_tab, community_tab, profile_tab, my_listings_tab = st.tabs(
-    [
-        "Home",
-        "Browse Seeds",
-        "Seed Map",
-        "Add Listing",
-        "AI Assistant",
-        "Community",
-        "My Profile",
-        "My Listings",
-    ]
+PAGES = [
+    "Home",
+    "Browse Seeds",
+    "Seed Map",
+    "Add Listing",
+    "AI Assistant",
+    "Community",
+    "My Profile",
+    "My Listings",
+]
+
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "Home"
+
+if st.session_state.current_page not in PAGES:
+    st.session_state.current_page = "Home"
+
+selected_page = st.radio(
+    "Navigation",
+    PAGES,
+    index=PAGES.index(st.session_state.current_page),
+    horizontal=True,
+    label_visibility="collapsed",
 )
+
+if selected_page != st.session_state.current_page:
+    st.session_state.current_page = selected_page
+    st.rerun()
 
 
 # -----------------------------
 # Home
 # -----------------------------
 
-with home_tab:
+if st.session_state.current_page == "Home":
     listings = get_all_listings()
     profiles = get_all_profiles()
 
@@ -527,41 +554,29 @@ with home_tab:
 
     st.markdown(
         """
-        <div class="hero">
-            <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
-            <h1>Share seeds,<br><em>grow together.</em></h1>
-            <p>
-                Discover, exchange, and grow seeds with fellow Berlin urban gardeners.
-                Every balcony can become a garden.
-            </p>
-            <div class="hero-buttons">
-                <a class="cta-primary" href="#browse-seeds">🌿 Browse Seeds</a>
-                <a class="cta-secondary" href="#share-your-seeds">＋ Add Listing</a>
-            </div>
-
-            <div class="floating-card float-one">
-                <div class="mini-title">Available now</div>
-                <h3>Basil Seedlings</h3>
-                <div class="seed-meta">Herb · Prenzlauer Berg</div>
-                <div class="badge-row">
-                    <span class="badge">☀ Full sun</span>
-                    <span class="badge">🌱 Beginner</span>
-                </div>
-            </div>
-
-            <div class="floating-card float-two">
-                <div class="mini-title">Community pick</div>
-                <h3>Cherry Tomatoes</h3>
-                <div class="seed-meta">Vegetable · Mitte</div>
-                <div class="badge-row">
-                    <span class="badge">🌤 Balcony-friendly</span>
-                    <span class="badge">⭐ Easy</span>
-                </div>
-            </div>
-        </div>
+<div class="hero">
+    <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
+    <h1>Share seeds,<br><em>grow together.</em></h1>
+    <p>
+        Discover, exchange, and grow seeds with fellow Berlin urban gardeners.<br>
+        Every balcony can become a garden.
+    </p>
+</div>
         """,
         unsafe_allow_html=True,
     )
+
+    hero_col1, hero_col2, hero_col3 = st.columns([1, 1, 4])
+
+    with hero_col1:
+        if st.button("🌿 Browse Seeds", key="home_go_browse"):
+            st.session_state.current_page = "Browse Seeds"
+            st.rerun()
+
+    with hero_col2:
+        if st.button("＋ Add Listing", key="home_go_add"):
+            st.session_state.current_page = "Add Listing"
+            st.rerun()
 
     col1, col2, col3 = st.columns(3)
 
@@ -616,7 +631,7 @@ with home_tab:
 # Browse Seeds
 # -----------------------------
 
-with browse_tab:
+if st.session_state.current_page == "Browse Seeds":
     st.markdown('<div id="browse-seeds"></div>', unsafe_allow_html=True)
     page_header(
         "Browse Seeds",
@@ -798,7 +813,7 @@ with browse_tab:
 # Seed Map
 # -----------------------------
 
-with map_tab:
+if st.session_state.current_page == "Seed Map":
     page_header(
         "Seed Map",
         "Discover available seeds near you across Berlin. Markers use approximate district locations, not exact addresses.",
@@ -845,7 +860,7 @@ with map_tab:
 # Add Listing
 # -----------------------------
 
-with add_tab:
+if st.session_state.current_page == "Add Listing":
     st.markdown('<div id="share-your-seeds"></div>', unsafe_allow_html=True)
     page_header(
         "Share Your Seeds",
@@ -980,7 +995,7 @@ with add_tab:
 # AI Gardening Assistant
 # -----------------------------
 
-with ai_tab:
+if st.session_state.current_page == "AI Assistant":
     page_header(
         "AI Gardening Assistant",
         "Get personalized growing advice based on your balcony, season, sunlight, and gardening experience.",
@@ -1123,7 +1138,7 @@ with ai_tab:
 # Community Profiles
 # -----------------------------
 
-with community_tab:
+if st.session_state.current_page == "Community":
     page_header(
         "Community Gardeners",
         "Browse Sprouty users, view public profiles, and rate community interactions.",
@@ -1272,7 +1287,7 @@ with community_tab:
 # My Profile
 # -----------------------------
 
-with profile_tab:
+if st.session_state.current_page == "My Profile":
     page_header(
         "My Profile",
         "Manage your gardener profile, seed matching preferences, and community identity.",
@@ -1456,7 +1471,7 @@ with profile_tab:
 # My Listings
 # -----------------------------
 
-with my_listings_tab:
+if st.session_state.current_page == "My Listings":
     page_header(
         "My Listings",
         "Manage the seeds and seedlings you have shared with the community.",
