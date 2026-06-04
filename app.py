@@ -175,6 +175,10 @@ def inject_design():
             font-weight: 800;
             box-shadow: 0 10px 24px rgba(37, 77, 23, 0.18);
         }
+        div.stButton > button *,
+        div.stFormSubmitButton > button * {
+        color: #FFFFFF !important;
+        }
 
         div.stButton > button p,
         div.stButton > button span,
