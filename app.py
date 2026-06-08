@@ -513,6 +513,7 @@ def inject_design():
         color: #FFFFFF !important;
         }
 
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -625,6 +626,9 @@ def go_to_page(page_name: str):
 # -----------------------------
 
 with st.sidebar:
+    st.image("sprouty_logo.PNG", use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
     st.header("Account")
 
     if is_logged_in():
@@ -682,7 +686,7 @@ with st.sidebar:
         "Home": "🏠",
         "Browse Seeds": "🌿",
         "Seed Map": "🗺️",
-        "Add Listing": "＋",
+        "Add Listing": "🌾",
         "AI Assistant": "🪴",
         "Community": "👥",
         "My Profile": "👤",
@@ -695,19 +699,6 @@ with st.sidebar:
         if st.button(label, key=f"sidebar_nav_{page_name}", use_container_width=True, type=button_type):
             go_to_page(page_name)
 
-    st.markdown(
-        """
-        <div class="sidebar-brand-card">
-            <div class="sidebar-brand-icon">🌱</div>
-            <div>
-                <strong>Sprouty</strong><br>
-                <span>Share seeds, grow together.</span><br>
-                <span>SeedShare Berlin</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 # -----------------------------
@@ -742,10 +733,9 @@ if st.session_state.current_page == "Home":
     st.markdown(
         """
 <div class="hero">
-    <div class="hero-kicker">🌱 Sprouty · SeedShare Berlin</div>
     <h1>
-    <span style="color:#FFFFFF !important;">Share seeds,</span><br>
-    <em style="color:#FFFFFF !important;">grow together.</em>
+    <span style="color:#FFFFFF !important;">Share seeds</span><br>
+    <em style="color:#FFFFFF !important;">grow connections.</em>
     </h1>
     <p>
         Discover, exchange, and grow seeds with fellow Berlin urban gardeners.<br>
@@ -766,7 +756,7 @@ if st.session_state.current_page == "Home":
             st.rerun()
 
     with hero_col2:
-        if st.button("＋ Add Listing", key="home_go_add"):
+        if st.button("🌾 Add Listing", key="home_go_add"):
             st.session_state.current_page = "Add Listing"
             st.rerun()
 
@@ -1067,6 +1057,12 @@ if st.session_state.current_page == "Add Listing":
 
     else:
         user = get_current_user()
+        current_profile = get_profile(user.id)
+        owner_name = (
+            (current_profile.get("display_name") if current_profile else None)
+            or (current_profile.get("username") if current_profile else None)
+            or (user.email.split("@")[0] if getattr(user, "email", None) else "Sprouty gardener")
+        )
 
         with st.form("add_listing_form"):
             st.markdown("### About the seed")
@@ -1139,10 +1135,6 @@ if st.session_state.current_page == "Add Listing":
                     ],
                 )
 
-                owner_name = st.text_input(
-                    "Your name or nickname",
-                    placeholder="e.g. Anna, GreenBalcony92",
-                )
 
             contact = st.text_input(
                 "Contact",
@@ -1159,8 +1151,6 @@ if st.session_state.current_page == "Add Listing":
             if submitted_listing:
                 if not seed_name:
                     st.error("Please enter a seed or seedling name.")
-                elif not owner_name:
-                    st.error("Please enter your name or nickname.")
                 elif not contact:
                     st.error("Please enter a contact method.")
                 else:
@@ -1245,10 +1235,10 @@ if st.session_state.current_page == "AI Assistant":
                 gardening_experience = st.selectbox(
                     "Gardening experience",
                     [
-                        "Complete beginner",
-                        "Beginner",
-                        "Some experience",
-                        "Experienced gardener",
+                        "I've never grown anything",
+                        "I've tried, with mixed results",
+                        "I grow successfully most seasons",
+                        "I've been doing this for years",
                     ],
                 )
 
@@ -1590,8 +1580,6 @@ if st.session_state.current_page == "My Profile":
                     st.error("Please enter your neighbourhood.")
                 elif not looking_for:
                     st.error("Please enter what you are looking for. This is needed for matching.")
-                elif not offering:
-                    st.error("Please enter what you can offer. This helps other users match with you.")
                 else:
                     try:
                         upsert_profile(

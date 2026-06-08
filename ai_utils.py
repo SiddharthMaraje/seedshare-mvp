@@ -28,10 +28,16 @@ User inputs:
 - Balcony size: {balcony_size}
 - Month or season: {month_or_season}
 - Gardening experience: {gardening_experience}
+
+Interpret the gardening experience answer like this:
+- "I've never grown anything" = complete beginner; use very simple, reassuring instructions and avoid jargon.
+- "I've tried, with mixed results" = beginner with some attempts; give practical fixes for common mistakes.
+- "I grow successfully most seasons" = confident intermediate grower; keep advice practical and moderately detailed.
+- "I've been doing this for years" = experienced gardener; be concise, more advanced, and include optional deeper resources.
 - Balcony sunlight: {balcony_sunlight}
 - Main interest / seed type: {main_interest}
 
-Create a helpful recommendation for this urban gardener. Adapt depth and detail to their experience level — keep it simple and encouraging for beginners, more concise and direct for experienced gardeners. 
+Create a helpful recommendation for this urban gardener. Adapt depth and detail to the selected experience level: very simple and encouraging for first-time growers, practical and confidence-building for people with mixed results, moderately detailed for successful seasonal growers, and concise/direct with more advanced nuance for long-time gardeners. 
 
 IMPORTANT ACCURACY RULES: 
 - Only recommend plants that can realistically be started from seed, seedlings, or cuttings by a home gardener at the stated experience level. Do not suggest plants that require specialist equipment or laboratory conditions to propagate (e.g. orchids from seed). 
@@ -45,7 +51,7 @@ Structure your response using these sections:
 4. Watering and sunlight advice (max. 3 bullet points) 
 5. Step-by-step action plan (max. 5 steps) 
 6. Common mistakes to avoid (max. 3 bullet points) 
-7. If gardening experience is "Experienced gardener": suggest 1–2 trusted resources to go deeper (real books or websites only – no made-up links). Do not include this section for beginners or complete beginners. 
+7. If gardening experience is "I've been doing this for years": suggest 1–2 trusted resources to go deeper (real books or websites only – no made-up links). Do not include this section for the other experience levels. 
 
 Use a small number of relevant emojis to keep things lively. 
 The very last sentence of your entire response must be an encouraging Sprouty tip inviting the gardener to share surplus seeds or seedlings with their community through Sprouty.
