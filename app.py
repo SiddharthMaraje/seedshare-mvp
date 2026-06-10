@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 from streamlit_folium import st_folium
 
@@ -708,6 +710,18 @@ with st.sidebar:
 if "selected_profile_id" not in st.session_state:
     st.session_state.selected_profile_id = None
 
+if "community_view_mode" not in st.session_state:
+    st.session_state.community_view_mode = "list"
+
+if "listing_added_success" not in st.session_state:
+    st.session_state.listing_added_success = False
+
+if "listing_deleted_success" not in st.session_state:
+    st.session_state.listing_deleted_success = False
+
+if "listing_deleted_success_started" not in st.session_state:
+    st.session_state.listing_deleted_success_started = None
+
 
 # -----------------------------
 # Navigation helper
@@ -989,7 +1003,9 @@ if st.session_state.current_page == "Browse Seeds":
 
                         if st.button("View owner profile", key=f"browse_owner_{listing.get('id')}"):
                             st.session_state.selected_profile_id = owner_id
-                            st.info("Open the Community tab to view the selected profile.")
+                            st.session_state.community_view_mode = "detail"
+                            st.session_state.current_page = "Community"
+                            st.rerun()
 
 
 # -----------------------------
@@ -1051,6 +1067,10 @@ if st.session_state.current_page == "Add Listing":
         "Share Your Seeds",
         "Help another Berlin gardener start growing.",
     )
+
+    if st.session_state.get("listing_added_success"):
+        st.success("Listing added successfully.")
+        st.session_state.listing_added_success = False
 
     if not is_logged_in():
         st.warning("Please log in to add a seed listing.")
@@ -1168,7 +1188,7 @@ if st.session_state.current_page == "Add Listing":
                             user_id=user.id,
                         )
 
-                        st.success("Listing created successfully.")
+                        st.session_state.listing_added_success = True
                         st.rerun()
 
                     except Exception as e:
@@ -1341,42 +1361,6 @@ if st.session_state.current_page == "Community":
             st.info("No community profiles yet.")
 
         else:
-            search_profile = st.text_input(
-                "Search profiles",
-                placeholder="Search by name, username, neighbourhood, bio, or gardening level",
-            )
-
-            filtered_profiles = profiles
-
-            if search_profile:
-                search_lower = search_profile.lower()
-
-                filtered_profiles = [
-                    profile for profile in filtered_profiles
-                    if search_lower in str(profile.get("display_name", "")).lower()
-                    or search_lower in str(profile.get("username", "")).lower()
-                    or search_lower in str(profile.get("neighbourhood", "")).lower()
-                    or search_lower in str(profile.get("short_bio", "")).lower()
-                    or search_lower in str(profile.get("gardening_level", "")).lower()
-                    or search_lower in str(profile.get("looking_for", "")).lower()
-                    or search_lower in str(profile.get("offering", "")).lower()
-                ]
-
-            st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
-
-            cols = st.columns(3)
-
-            for index, profile in enumerate(filtered_profiles):
-                profile_id = profile.get("id")
-                rating_summary = get_rating_summary(profile_id)
-
-                with cols[index % 3]:
-                    profile_card(profile, rating_summary)
-
-                    if st.button("View profile", key=f"view_profile_{profile_id}"):
-                        st.session_state.selected_profile_id = profile_id
-                        st.rerun()
-
             selected_profile = None
 
             if st.session_state.selected_profile_id:
@@ -1385,12 +1369,16 @@ if st.session_state.current_page == "Community":
                         selected_profile = profile
                         break
 
-            if selected_profile:
-                st.markdown("---")
-                st.markdown("## Selected User Profile")
+            if st.session_state.community_view_mode == "detail" and selected_profile:
+                if st.button("← Back to all profiles", key="back_to_all_profiles"):
+                    st.session_state.community_view_mode = "list"
+                    st.session_state.selected_profile_id = None
+                    st.rerun()
 
                 selected_id = selected_profile.get("id")
                 selected_name = selected_profile.get("display_name") or selected_profile.get("username", "Unnamed user")
+
+                st.markdown("## Selected User Profile")
 
                 st.markdown(
                     f"""
@@ -1468,6 +1456,46 @@ if st.session_state.current_page == "Community":
                             except Exception as e:
                                 st.error("Could not save rating.")
                                 st.caption(str(e))
+
+            else:
+                st.session_state.community_view_mode = "list"
+
+                search_profile = st.text_input(
+                    "Search profiles",
+                    placeholder="Search by name, username, neighbourhood, bio, or gardening level",
+                )
+
+                filtered_profiles = profiles
+
+                if search_profile:
+                    search_lower = search_profile.lower()
+
+                    filtered_profiles = [
+                        profile for profile in filtered_profiles
+                        if search_lower in str(profile.get("display_name", "")).lower()
+                        or search_lower in str(profile.get("username", "")).lower()
+                        or search_lower in str(profile.get("neighbourhood", "")).lower()
+                        or search_lower in str(profile.get("short_bio", "")).lower()
+                        or search_lower in str(profile.get("gardening_level", "")).lower()
+                        or search_lower in str(profile.get("looking_for", "")).lower()
+                        or search_lower in str(profile.get("offering", "")).lower()
+                    ]
+
+                st.write(f"Showing **{len(filtered_profiles)}** profile(s).")
+
+                cols = st.columns(3)
+
+                for index, profile in enumerate(filtered_profiles):
+                    profile_id = profile.get("id")
+                    rating_summary = get_rating_summary(profile_id)
+
+                    with cols[index % 3]:
+                        profile_card(profile, rating_summary)
+
+                        if st.button("View profile", key=f"view_profile_{profile_id}"):
+                            st.session_state.selected_profile_id = profile_id
+                            st.session_state.community_view_mode = "detail"
+                            st.rerun()
 
 
 # -----------------------------
@@ -1650,7 +1678,9 @@ if st.session_state.current_page == "My Profile":
 
                         if st.button("View full profile", key=f"match_profile_{matched_profile.get('id')}"):
                             st.session_state.selected_profile_id = matched_profile.get("id")
-                            st.info("Open the Community tab to view the selected profile.")
+                            st.session_state.community_view_mode = "detail"
+                            st.session_state.current_page = "Community"
+                            st.rerun()
 
 
 # -----------------------------
@@ -1663,6 +1693,21 @@ if st.session_state.current_page == "My Listings":
         "My Listings",
         "Manage the seeds and seedlings you have shared with the community.",
     )
+
+    if st.session_state.get("listing_deleted_success"):
+        st.success("Listing deleted successfully")
+
+        if st.session_state.get("listing_deleted_success_started") is None:
+            st.session_state.listing_deleted_success_started = time.time()
+
+        if time.time() - st.session_state.listing_deleted_success_started >= 5:
+            st.session_state.listing_deleted_success = False
+            st.session_state.listing_deleted_success_started = None
+            st.rerun()
+
+    if st.button("🌾 Add Listing", key="my_listings_go_add_listing"):
+        st.session_state.current_page = "Add Listing"
+        st.rerun()
 
     if not is_logged_in():
         st.warning("Please log in to view your listings.")
@@ -1719,7 +1764,8 @@ if st.session_state.current_page == "My Listings":
                     ):
                         try:
                             delete_listing(listing.get("id"))
-                            st.success("Listing deleted.")
+                            st.session_state.listing_deleted_success = True
+                            st.session_state.listing_deleted_success_started = time.time()
                             st.rerun()
 
                         except Exception as e:
