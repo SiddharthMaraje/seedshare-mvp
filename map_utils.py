@@ -43,26 +43,17 @@ def create_seed_map(listings):
 
         seed_name = listing.get("seed_name", "Unnamed seed or seedling")
         category = listing.get("category", "Not specified")
-        condition = listing.get("best_balcony_condition", "Not specified")
-        suitable_for = listing.get("suitable_for", "Not specified")
         quantity = listing.get("quantity", "Not specified")
-        owner_name = listing.get("owner_name", "Not specified")
         contact = listing.get("contact", "Not specified")
-        description = listing.get("description", "")
 
         popup_html = f"""
         <div style="width: 260px;">
             <h4>{seed_name}</h4>
+            <b>Seed Name:</b> {seed_name}<br>
             <b>Category:</b> {category}<br>
             <b>District:</b> {district}<br>
-            <b>Best balcony condition:</b> {condition}<br>
-            <b>Suitable for:</b> {suitable_for}<br>
             <b>Quantity:</b> {quantity}<br>
-            <b>Shared by:</b> {owner_name}<br>
             <b>Contact:</b> {contact}<br>
-            <br>
-            <b>Growing tip:</b><br>
-            {description}
         </div>
         """
 

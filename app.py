@@ -605,7 +605,7 @@ PAGES = [
     "Browse Seeds",
     "Seed Map",
     "Add Listing",
-    "AI Assistant",
+    "AI Gardening Assistant",
     "Community",
     "My Profile",
     "My Listings",
@@ -689,7 +689,7 @@ with st.sidebar:
         "Browse Seeds": "🌿",
         "Seed Map": "🗺️",
         "Add Listing": "🌾",
-        "AI Assistant": "🪴",
+        "AI Gardening Assistant": "🪴",
         "Community": "👥",
         "My Profile": "👤",
         "My Listings": "📦",
@@ -1200,7 +1200,7 @@ if st.session_state.current_page == "Add Listing":
 # AI Gardening Assistant
 # -----------------------------
 
-if st.session_state.current_page == "AI Assistant":
+if st.session_state.current_page == "AI Gardening Assistant":
     render_navigation()
     page_header(
         "AI Gardening Assistant",
@@ -1592,7 +1592,7 @@ if st.session_state.current_page == "My Profile":
             )
 
             offering = st.text_area(
-                "What can you offer?",
+                "What would you like to share?",
                 value=default_offering,
                 placeholder="e.g. herb seeds, marigold seeds, beginner gardening advice",
             )
