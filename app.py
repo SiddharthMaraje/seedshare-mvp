@@ -1,4 +1,5 @@
 import time
+import html
 
 import streamlit as st
 from streamlit_folium import st_folium
@@ -540,28 +541,46 @@ def page_header(title, subtitle):
     )
 
 
-def listing_card(listing):
+def listing_card(listing, owner_rating=None):
     status = listing.get("status", "Available")
-
     status_badge = "🌱 Available" if status == "Available" else "✓ Exchanged"
+
+    category = html.escape(str(listing.get("category", "Seed")))
+    seed_name = html.escape(str(listing.get("seed_name", "Unnamed seed or seedling")))
+    berlin_district = html.escape(str(listing.get("berlin_district", "Berlin")))
+    description = html.escape(str(listing.get("description", "")))
+    best_balcony_condition = html.escape(str(listing.get("best_balcony_condition", "Not specified")))
+    suitable_for = html.escape(str(listing.get("suitable_for", "Not specified")))
+    quantity = html.escape(str(listing.get("quantity", "Not specified")))
+    owner_name = html.escape(str(listing.get("owner_name", "Not specified")))
+    contact = html.escape(str(listing.get("contact", "Not specified")))
+
+    if owner_rating and owner_rating.get("count", 0) > 0:
+        rating_text = (
+            f"⭐ Owner rating: {owner_rating.get('average', 0)}/5 "
+            f"from {owner_rating.get('count', 0)} rating(s)"
+        )
+    else:
+        rating_text = "⭐ Owner rating: No ratings yet"
 
     st.markdown(
         f"""
         <div class="seed-card">
-            <div class="mini-title">{listing.get('category', 'Seed')}</div>
-            <h3>🌿 {listing.get('seed_name', 'Unnamed seed or seedling')}</h3>
+            <div class="mini-title">{category}</div>
+            <h3>🌿 {seed_name}</h3>
             <div class="seed-meta">
-                {listing.get('berlin_district', 'Berlin')} · {status_badge}
+                {berlin_district} · {status_badge}
             </div>
-            <p>{listing.get('description', '')}</p>
+            <p>{description}</p>
             <div class="badge-row">
-                <span class="badge">☀ {listing.get('best_balcony_condition', 'Not specified')}</span>
-                <span class="badge">🌱 {listing.get('suitable_for', 'Not specified')}</span>
+                <span class="badge">☀ {best_balcony_condition}</span>
+                <span class="badge">🌱 {suitable_for}</span>
+                <span class="badge">{rating_text}</span>
             </div>
             <br>
-            <p><b>Quantity:</b> {listing.get('quantity', 'Not specified')}</p>
-            <p><b>Shared by:</b> {listing.get('owner_name', 'Not specified')}</p>
-            <p><b>Contact:</b> {listing.get('contact', 'Not specified')}</p>
+            <p><b>Quantity:</b> {quantity}</p>
+            <p><b>Shared by:</b> {owner_name}</p>
+            <p><b>Contact:</b> {contact}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -989,18 +1008,12 @@ if st.session_state.current_page == "Browse Seeds":
 
             for index, listing in enumerate(filtered_listings):
                 with cols[index % 3]:
-                    listing_card(listing)
-
                     owner_id = listing.get("user_id")
+                    owner_rating = get_rating_summary(owner_id) if owner_id else None
+
+                    listing_card(listing, owner_rating=owner_rating)
 
                     if owner_id:
-                        owner_rating = get_rating_summary(owner_id)
-
-                        if owner_rating["count"] > 0:
-                            st.caption(
-                                f"Owner rating: ⭐ {owner_rating['average']}/5 from {owner_rating['count']} rating(s)"
-                            )
-
                         if st.button("View owner profile", key=f"browse_owner_{listing.get('id')}"):
                             st.session_state.selected_profile_id = owner_id
                             st.session_state.community_view_mode = "detail"
