@@ -2,6 +2,7 @@ import time
 import html
 
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_folium import st_folium
 
 from auth_utils import (
@@ -639,7 +640,47 @@ if st.session_state.current_page not in PAGES:
 
 def go_to_page(page_name: str):
     st.session_state.current_page = page_name
+
+    # When the user clicks the Community tab in the sidebar, always show
+    # the full community list instead of keeping a previously selected profile.
+    # Direct links such as "View owner profile" still set detail mode themselves.
+    if page_name == "Community":
+        st.session_state.community_view_mode = "list"
+        st.session_state.selected_profile_id = None
+
+    st.session_state.scroll_to_top = True
     st.rerun()
+
+
+def scroll_page_to_top():
+    """Force the browser viewport to the top after Streamlit reruns/navigation."""
+    components.html(
+        """
+        <script>
+            function scrollToTop() {
+                const doc = window.parent.document;
+                const main = doc.querySelector('section.main');
+                const appView = doc.querySelector('.stAppViewContainer');
+                const blockContainer = doc.querySelector('.block-container');
+
+                window.parent.scrollTo(0, 0);
+                doc.documentElement.scrollTop = 0;
+                doc.body.scrollTop = 0;
+
+                if (main) { main.scrollTo(0, 0); main.scrollTop = 0; }
+                if (appView) { appView.scrollTo(0, 0); appView.scrollTop = 0; }
+                if (blockContainer) { blockContainer.scrollIntoView({block: 'start'}); }
+            }
+
+            scrollToTop();
+            setTimeout(scrollToTop, 50);
+            setTimeout(scrollToTop, 200);
+            setTimeout(scrollToTop, 500);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 # -----------------------------
@@ -740,6 +781,9 @@ if "listing_deleted_success" not in st.session_state:
 
 if "listing_deleted_success_started" not in st.session_state:
     st.session_state.listing_deleted_success_started = None
+
+if "scroll_to_top" not in st.session_state:
+    st.session_state.scroll_to_top = False
 
 
 # -----------------------------
@@ -1018,6 +1062,7 @@ if st.session_state.current_page == "Browse Seeds":
                             st.session_state.selected_profile_id = owner_id
                             st.session_state.community_view_mode = "detail"
                             st.session_state.current_page = "Community"
+                            st.session_state.scroll_to_top = True
                             st.rerun()
 
 
@@ -1359,6 +1404,11 @@ if st.session_state.current_page == "AI Gardening Assistant":
 
 if st.session_state.current_page == "Community":
     render_navigation()
+
+    if st.session_state.get("scroll_to_top"):
+        scroll_page_to_top()
+        st.session_state.scroll_to_top = False
+
     page_header(
         "Community Gardeners",
         "Browse Sprouty users, view public profiles, and rate community interactions.",
@@ -1508,6 +1558,7 @@ if st.session_state.current_page == "Community":
                         if st.button("View profile", key=f"view_profile_{profile_id}"):
                             st.session_state.selected_profile_id = profile_id
                             st.session_state.community_view_mode = "detail"
+                            st.session_state.scroll_to_top = True
                             st.rerun()
 
 
@@ -1693,6 +1744,7 @@ if st.session_state.current_page == "My Profile":
                             st.session_state.selected_profile_id = matched_profile.get("id")
                             st.session_state.community_view_mode = "detail"
                             st.session_state.current_page = "Community"
+                            st.session_state.scroll_to_top = True
                             st.rerun()
 
 
