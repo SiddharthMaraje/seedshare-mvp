@@ -365,6 +365,12 @@ def inject_design():
             margin-bottom: 0.8rem;
         }
 
+        .seed-card .contact-value {
+            color: #1E88E5 !important;
+            font-weight: 800;
+            word-break: break-word;
+        }
+
         .badge-row {
             display: flex;
             flex-wrap: wrap;
@@ -581,7 +587,7 @@ def listing_card(listing, owner_rating=None):
             <br>
             <p><b>Quantity:</b> {quantity}</p>
             <p><b>Shared by:</b> {owner_name}</p>
-            <p><b>Contact:</b> {contact}</p>
+            <p><b>Contact:</b> <span class="contact-value">{contact}</span></p>
         </div>
         """,
         unsafe_allow_html=True,

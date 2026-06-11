@@ -53,7 +53,7 @@ def create_seed_map(listings):
             <b>Category:</b> {category}<br>
             <b>District:</b> {district}<br>
             <b>Quantity:</b> {quantity}<br>
-            <b>Contact:</b> {contact}<br>
+            <b>Contact:</b> <span style="color:#1E88E5; font-weight:700;">{contact}</span><br>
         </div>
         """
 
